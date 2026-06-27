@@ -1,9 +1,11 @@
 {
+  "/api/grocery/[batchId]/route": "/api/grocery/[batchId]",
+  "/api/grocery/receipt/route": "/api/grocery/receipt",
   "/_not-found/page": "/_not-found",
   "/(auth)/login/page": "/login",
   "/page": "/",
-  "/(app)/barcode/page": "/barcode",
-  "/(app)/scan/page": "/scan",
   "/(app)/grocery/[batchId]/page": "/grocery/[batchId]",
-  "/(app)/grocery/page": "/grocery"
+  "/(app)/grocery/page": "/grocery",
+  "/(app)/barcode/page": "/barcode",
+  "/(app)/scan/page": "/scan"
 }

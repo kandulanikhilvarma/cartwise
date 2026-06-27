@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ReceiptUploader } from '@/features/grocery/components/ReceiptUploader'
 
 const flow = [
   'Upload a receipt or capture it on mobile',
@@ -13,8 +14,8 @@ export default function ScanPage() {
         <p className="eyebrow">Capture flow</p>
         <h1>Show what the product does before asking for more effort.</h1>
         <p className="lede">
-          This page will become the actual scan entry point. For now it explains the flow, keeps
-          the journey light, and gives the user a direct route to the save/login step.
+          Start with the value story, then try the receipt flow below. This keeps the first touch
+          calm while still proving the app can turn a grocery receipt into useful nutrition output.
         </p>
         <div className="flow-list">
           {flow.map((item, index) => (
@@ -24,6 +25,11 @@ export default function ScanPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <ReceiptUploader />
+
+      <section className="surface-card">
         <div className="cta-row">
           <Link className="button button-primary" href="/login">
             Save a batch

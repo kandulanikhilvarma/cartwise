@@ -20,6 +20,14 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/grocery/[batchId]",
+      "regex": "^/api/grocery/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPbatchId": "nxtPbatchId"
+      },
+      "namedRegex": "^/api/grocery/(?<nxtPbatchId>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/grocery/[batchId]",
       "regex": "^/grocery/([^/]+?)(?:/)?$",
       "routeKeys": {
