@@ -201,6 +201,17 @@ h1 {
   line-height: 1.65;
 }
 
+.fine-print,
+.error-text {
+  margin: 14px 0 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.error-text {
+  color: #9c2f2f;
+}
+
 .auth-shell,
 .surface-page {
   width: min(960px, calc(100% - 32px));
@@ -308,6 +319,20 @@ h1 {
   display: block;
 }
 
+.batch-card-done {
+  opacity: 0.78;
+}
+
+.batch-card-done strong {
+  text-decoration: line-through;
+}
+
+.item-state {
+  margin-top: 8px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
 .batch-card a {
   font-weight: 700;
   color: var(--accent-dark);
@@ -317,6 +342,96 @@ h1 {
   white-space: nowrap;
   color: var(--accent-dark);
   font-weight: 700;
+}
+
+.receipt-uploader {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.upload-card,
+.result-card {
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  padding: 32px;
+}
+
+.upload-card {
+  display: grid;
+  gap: 18px;
+}
+
+.upload-field {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.upload-field input {
+  width: 100%;
+}
+
+.result-card {
+  display: grid;
+  gap: 16px;
+}
+
+.result-items {
+  display: grid;
+  gap: 12px;
+}
+
+.result-item {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--line);
+}
+
+.nutrition-summary {
+  display: grid;
+  gap: 14px;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.nutrition-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.nutrition-card strong,
+.nutrition-card p {
+  display: block;
+}
+
+.nutrition-card p {
+  margin: 8px 0 0;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 1.35rem;
+}
+
+.tone-good {
+  border-color: rgba(15, 122, 79, 0.24);
+}
+
+.tone-warning {
+  border-color: rgba(247, 170, 64, 0.35);
+}
+
+.tone-neutral {
+  border-color: var(--line);
 }
 
 .process {

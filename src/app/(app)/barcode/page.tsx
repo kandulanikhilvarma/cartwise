@@ -1,3 +1,5 @@
+import { BarcodeLookup } from '@/features/scanner/components/BarcodeLookup'
+
 export default function BarcodePage() {
   return (
     <main className="surface-page">
@@ -9,6 +11,8 @@ export default function BarcodePage() {
           user wants to add a single item directly.
         </p>
       </section>
+
+      <BarcodeLookup />
     </main>
   )
 }

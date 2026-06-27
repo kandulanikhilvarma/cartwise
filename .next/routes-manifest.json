@@ -20,12 +20,37 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/food-db/barcode/[code]",
+      "regex": "^/api/food\\-db/barcode/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPcode": "nxtPcode"
+      },
+      "namedRegex": "^/api/food\\-db/barcode/(?<nxtPcode>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/grocery/receipt/[batchId]",
+      "regex": "^/api/grocery/receipt/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPbatchId": "nxtPbatchId"
+      },
+      "namedRegex": "^/api/grocery/receipt/(?<nxtPbatchId>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/api/grocery/[batchId]",
       "regex": "^/api/grocery/([^/]+?)(?:/)?$",
       "routeKeys": {
         "nxtPbatchId": "nxtPbatchId"
       },
       "namedRegex": "^/api/grocery/(?<nxtPbatchId>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/grocery/[batchId]/items/[itemId]",
+      "regex": "^/api/grocery/([^/]+?)/items/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPbatchId": "nxtPbatchId",
+        "nxtPitemId": "nxtPitemId"
+      },
+      "namedRegex": "^/api/grocery/(?<nxtPbatchId>[^/]+?)/items/(?<nxtPitemId>[^/]+?)(?:/)?$"
     },
     {
       "page": "/grocery/[batchId]",

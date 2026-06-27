@@ -101,10 +101,37 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/food-db/barcode/[code]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/food-db/barcode/[code]">> = Specific
+  const handler = {} as typeof import("../../src/app/api/food-db/barcode/[code]/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/grocery/[batchId]/items/[itemId]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/grocery/[batchId]/items/[itemId]">> = Specific
+  const handler = {} as typeof import("../../src/app/api/grocery/[batchId]/items/[itemId]/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/api/grocery/[batchId]/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/grocery/[batchId]">> = Specific
   const handler = {} as typeof import("../../src/app/api/grocery/[batchId]/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/grocery/receipt/[batchId]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/grocery/receipt/[batchId]">> = Specific
+  const handler = {} as typeof import("../../src/app/api/grocery/receipt/[batchId]/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

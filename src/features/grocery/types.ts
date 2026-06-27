@@ -11,6 +11,8 @@ export type GroceryItem = {
   vitaminDMcg?: number | null
   ironMg?: number | null
   calciumMg?: number | null
+  consumed?: boolean
+  consumedAt?: string | null
 }
 
 export type GroceryBatch = {
