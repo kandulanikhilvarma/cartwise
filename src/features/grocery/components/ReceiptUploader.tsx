@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { GroceryBatch } from '@/features/grocery/types'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
 
 export function ReceiptUploader() {
+  const router = useRouter()
   const [fileName, setFileName] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +31,7 @@ export function ReceiptUploader() {
 
       const data = (await response.json()) as GroceryBatch
       setBatch(data)
+      router.refresh()
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Upload failed')
     } finally {
