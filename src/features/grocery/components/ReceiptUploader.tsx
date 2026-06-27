@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { GroceryBatch } from '@/features/grocery/types'
@@ -12,8 +12,34 @@ export function ReceiptUploader() {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [batch, setBatch] = useState<GroceryBatch | null>(null)
+  const [pendingBatchId, setPendingBatchId] = useState<string | null>(null)
 
   const previewItems = useMemo(() => batch?.items ?? [], [batch])
+
+  useEffect(() => {
+    if (!pendingBatchId) return
+
+    const intervalId = window.setInterval(async () => {
+      const response = await fetch(`/api/grocery/receipt/${pendingBatchId}`, {
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        return
+      }
+
+      const data = (await response.json()) as GroceryBatch
+      setBatch(data)
+
+      if (data.ocrStatus === 'done' || data.ocrStatus === 'failed') {
+        setPendingBatchId(null)
+        window.clearInterval(intervalId)
+        router.refresh()
+      }
+    }, 1200)
+
+    return () => window.clearInterval(intervalId)
+  }, [pendingBatchId, router])
 
   async function handleSubmit(formData: FormData) {
     setIsUploading(true)
@@ -31,6 +57,7 @@ export function ReceiptUploader() {
 
       const data = (await response.json()) as GroceryBatch
       setBatch(data)
+      setPendingBatchId(data.id)
       router.refresh()
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Upload failed')
@@ -41,12 +68,7 @@ export function ReceiptUploader() {
 
   return (
     <div className="receipt-uploader">
-      <form
-        className="upload-card"
-        action={async (formData) => {
-          await handleSubmit(formData)
-        }}
-      >
+      <form className="upload-card" action={handleSubmit}>
         <div className="upload-visual">
           <p className="eyebrow">Receipt first</p>
           <h2>Upload a grocery receipt to start.</h2>
@@ -84,7 +106,10 @@ export function ReceiptUploader() {
         <section className="result-card">
           <p className="eyebrow">Batch ready</p>
           <h2>{batch.storeName ?? 'Your grocery batch'}</h2>
-          <p className="fine-print">OCR status: {batch.ocrStatus}</p>
+          <p className="fine-print">
+            OCR status: {batch.ocrStatus}
+            {pendingBatchId ? ' - processing in background' : ''}
+          </p>
 
           <div className="result-items">
             {previewItems.map((item) => (
