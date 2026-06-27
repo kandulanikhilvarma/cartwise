@@ -18,7 +18,16 @@
     "afterFiles": [],
     "fallback": []
   },
-  "dynamicRoutes": [],
+  "dynamicRoutes": [
+    {
+      "page": "/grocery/[batchId]",
+      "regex": "^/grocery/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPbatchId": "nxtPbatchId"
+      },
+      "namedRegex": "^/grocery/(?<nxtPbatchId>[^/]+?)(?:/)?$"
+    }
+  ],
   "staticRoutes": [
     {
       "page": "/",
@@ -31,6 +40,30 @@
       "regex": "^/_not\\-found(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/barcode",
+      "regex": "^/barcode(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/barcode(?:/)?$"
+    },
+    {
+      "page": "/grocery",
+      "regex": "^/grocery(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/grocery(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/scan",
+      "regex": "^/scan(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/scan(?:/)?$"
     }
   ],
   "dataRoutes": [],

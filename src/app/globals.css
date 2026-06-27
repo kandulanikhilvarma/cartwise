@@ -201,6 +201,124 @@ h1 {
   line-height: 1.65;
 }
 
+.auth-shell,
+.surface-page {
+  width: min(960px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 72px;
+}
+
+.auth-card,
+.surface-card {
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  padding: 32px;
+}
+
+.app-shell {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 20px 0 72px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.brand {
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.app-nav a {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.app-nav a:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.app-content {
+  display: grid;
+  gap: 18px;
+}
+
+.flow-list,
+.batch-list {
+  display: grid;
+  gap: 12px;
+  margin: 26px 0 0;
+}
+
+.flow-item,
+.batch-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.flow-item span {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(15, 122, 79, 0.12);
+  color: var(--accent-dark);
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.flow-item p,
+.batch-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.batch-card strong,
+.batch-card span {
+  display: block;
+}
+
+.batch-card a {
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.batch-card span {
+  white-space: nowrap;
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
 .process {
   border-radius: 28px;
   margin-top: 18px;

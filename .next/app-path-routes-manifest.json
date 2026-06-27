@@ -1,4 +1,9 @@
 {
   "/_not-found/page": "/_not-found",
-  "/page": "/"
+  "/(auth)/login/page": "/login",
+  "/page": "/",
+  "/(app)/barcode/page": "/barcode",
+  "/(app)/scan/page": "/scan",
+  "/(app)/grocery/[batchId]/page": "/grocery/[batchId]",
+  "/(app)/grocery/page": "/grocery"
 }
