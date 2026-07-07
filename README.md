@@ -26,6 +26,46 @@ FoodLens is the working repo for NutriLens, a receipt-first grocery nutrition ap
 - `docs/` - specs and notes
 - `tests/` - unit and e2e tests
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph app["App Router — src/app"]
+      SC["(app)/scan"]
+      GR["(app)/grocery"]
+      BC["(app)/barcode"]
+      AU["(auth)/login"]
+    end
+    subgraph api["Route handlers — app/api"]
+      RR["grocery/receipt"]
+      GB["grocery/[batchId]"]
+      FB["food-db/barcode/[code]"]
+    end
+    subgraph feat["Domain features — src/features"]
+      FS["scanner"]
+      FG["grocery"]
+      FN["nutrition<br/>batch-insights · RDA"]
+    end
+    subgraph infra["src/infrastructure"]
+      DB["db → Prisma"]
+      CA["cache"]
+      ST["state store"]
+    end
+    SC --> RR --> FG
+    GR --> GB --> FG
+    BC --> FB --> FS
+    FG --> FN
+    FG --> DB
+    FB --> CA
+    FN --> ST
+    DB --> PG[("Database")]
+```
+
+- **App Router** — a receipt-first flow across the `scan`, `grocery`, and `barcode` route groups, with an auth group for Google sign-in.
+- **Route handlers** — receipt upload, grocery-batch CRUD, and barcode lookups under `app/api`.
+- **Features** — domain logic in `scanner`, `grocery`, and `nutrition` (RDA constants + batch insights).
+- **Infrastructure** — Prisma-backed persistence, a cache layer, and client state.
+
 ## Run
 ```bash
 npm install
