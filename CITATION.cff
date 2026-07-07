@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "FoodLens (NutriLens): A Receipt-First Grocery Nutrition App"
+authors:
+  - family-names: Kandula
+    given-names: Nikhilvarma
+    email: kandulanikhilvarma@gmail.com
+    website: "https://kandula.studio"
+type: software
+url: "https://github.com/kandulanikhilvarma/foodlens"
+repository-code: "https://github.com/kandulanikhilvarma/foodlens"
+license: Apache-2.0
+keywords:
+  - nutrition
+  - nextjs
+  - prisma
+  - ocr
+  - receipts
