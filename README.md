@@ -2,6 +2,8 @@
 
 FoodLens is the working repo for NutriLens, a receipt-first grocery nutrition app.
 
+![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white) [![License](https://img.shields.io/badge/License-Apache%202.0-green)](LICENSE)
+
 ## Current focus
 - Public value-first landing page
 - Receipt upload flow
@@ -83,3 +85,11 @@ npm run build
 - `PRD_NutriLens_v2.md`
 - `TRD_NutriLens_v2.md`
 - `ADR_002_receipt_entry_point.md`
+
+## License
+
+Released under the Apache License 2.0 — see [LICENSE](LICENSE).
+
+---
+
+Built by **Nikhilvarma Kandula** · [LinkedIn](https://www.linkedin.com/in/nikhilvarmakandula) · [Portfolio](https://kandula.studio)
