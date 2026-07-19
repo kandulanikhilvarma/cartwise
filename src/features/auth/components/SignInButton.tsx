@@ -1,9 +1,11 @@
-import Link from 'next/link'
+"use client"
+
+import { signIn } from 'next-auth/react'
 
 export function SignInButton() {
   return (
-    <Link className="button button-primary" href="/login">
+    <button className="button button-primary" onClick={() => signIn('google', { callbackUrl: '/scan' })} type="button">
       Continue with Google
-    </Link>
+    </button>
   )
 }

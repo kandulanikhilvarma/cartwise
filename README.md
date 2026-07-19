@@ -6,18 +6,27 @@ FoodLens is the working repo for NutriLens, a receipt-first grocery nutrition ap
 
 ## Current focus
 - Public value-first landing page
-- Receipt upload flow
+- Receipt OCR upload flow
 - Grocery batch pages
 - Barcode fallback
 - Simple nutrition summary
-- Google OAuth later in the flow
+- Google OAuth flow wired in repo
 
 ## Status
 - Next.js 15 scaffold is in place
 - Route groups exist for app and auth surfaces
-- Mock receipt upload flow is wired
+- Receipt OCR flow is wired
+- Barcode lookup uses Open Food Facts with a cached fallback
+- Google sign-in route is wired
 - Prisma schema is present
 - Build currently passes
+
+## Env
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
+- `DATABASE_URL`
 
 ## Structure
 - `src/app/` - routes and pages

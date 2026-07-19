@@ -7,11 +7,14 @@ Keep a short, readable record of what changed, why it changed, and how to reprod
 - Next.js 15 scaffold is in place.
 - Public landing page exists.
 - Route groups exist for app and auth surfaces.
-- Receipt upload flow exists and uses a shared in-memory batch store.
+- Receipt upload flow extracts OCR text and finalizes receipt items, with Prisma-backed persistence when `DATABASE_URL` is set.
 - Receipt processing now has a `processing` state and polling endpoint.
-- Batch list and batch detail read from the same store.
+- Batch list and batch detail read from the same store and are scoped to the signed-in user.
 - Grocery items can be marked consumed and the batch UI shows that state.
-- Barcode lookup now returns a product for known codes.
+- Barcode lookup now uses Open Food Facts with a local fallback cache.
+- Google sign-in route and session chip are wired.
+- Protected app routes and sign-out are wired.
+- Batch persistence now targets Prisma and falls back to memory when no database is configured.
 - Build currently passes.
 
 ## Change Log
@@ -68,6 +71,38 @@ Keep a short, readable record of what changed, why it changed, and how to reprod
 - Added `GET /api/food-db/barcode/[code]`.
 - Added a barcode lookup component on the barcode page.
 - Rendered nutrition cards for known barcode results.
+- Verified the build still passes.
+
+### 2026-07-20 - Auth shell
+- Added `src/auth.ts` with Google provider config.
+- Added `GET` and `POST` NextAuth route handlers.
+- Swapped login CTA to real `signIn('google')`.
+- Added a session chip in app shell.
+- Verified the build still passes.
+
+### 2026-07-20 - Auth protection
+- Added `middleware.ts` for `/scan`, `/grocery`, and `/barcode`.
+- Added `SignOutButton`.
+- Rendered sign-out in app shell when session exists.
+- Kept login page linked and simple.
+- Verified the build still passes.
+
+### 2026-07-20 - Batch persistence
+- Routed grocery batches and items through Prisma-backed storage.
+- Kept a memory fallback so the app still runs without a configured database.
+- Scoped batch reads and updates to the signed-in user email.
+- Verified the build still passes.
+
+### 2026-07-20 - Barcode lookup
+- Swapped the barcode route to Open Food Facts lookup.
+- Added a local cache plus fallback barcode records for offline resilience.
+- Kept the barcode page UI unchanged.
+- Verified the build still passes.
+
+### 2026-07-20 - Receipt OCR
+- Added a Tesseract-based receipt OCR service.
+- Finalized receipt batches with OCR-derived items instead of demo items.
+- Kept polling and batch detail behavior unchanged.
 - Verified the build still passes.
 
 ## How to Extend

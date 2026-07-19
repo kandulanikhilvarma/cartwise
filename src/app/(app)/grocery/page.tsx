@@ -1,8 +1,16 @@
 import Link from 'next/link'
+import { auth } from '@/auth'
 import { listBatches } from '@/infrastructure/state/batch-store'
 
-export default function GroceryPage() {
-  const batches = listBatches()
+export default async function GroceryPage() {
+  const session = await auth()
+  const ownerEmail = session?.user?.email
+
+  if (!ownerEmail) {
+    return null
+  }
+
+  const batches = await listBatches(ownerEmail)
 
   return (
     <main className="surface-page">

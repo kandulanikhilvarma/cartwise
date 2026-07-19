@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { auth } from '@/auth'
 import { getBatch } from '@/infrastructure/state/batch-store'
 import { GroceryItemList } from '@/features/grocery/components/GroceryItemList'
 
@@ -8,7 +9,14 @@ type BatchPageProps = {
 
 export default async function BatchPage({ params }: BatchPageProps) {
   const { batchId } = await params
-  const batch = getBatch(batchId)
+  const session = await auth()
+  const ownerEmail = session?.user?.email
+
+  if (!ownerEmail) {
+    notFound()
+  }
+
+  const batch = await getBatch(ownerEmail, batchId)
 
   if (!batch) {
     notFound()

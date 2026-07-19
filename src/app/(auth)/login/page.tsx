@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SignInButton } from '@/features/auth/components/SignInButton'
 
 export default function LoginPage() {
   return (
@@ -11,12 +12,10 @@ export default function LoginPage() {
           what the product does.
         </p>
         <div className="cta-row">
-          <Link className="button button-primary" href="/scan">
-            Continue to scan
-          </Link>
-          <a className="button button-secondary" href="/">
+          <SignInButton />
+          <Link className="button button-secondary" href="/">
             Back to overview
-          </a>
+          </Link>
         </div>
       </section>
     </main>
