@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { removeBatchItem, updateBatchItem } from '@/infrastructure/state/batch-store'
+import { parseJsonBody } from '@/shared/lib/http'
 
 type RouteParams = {
   params: Promise<{ batchId: string; itemId: string }>
@@ -15,11 +16,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = (await request.json()) as {
+  const body = await parseJsonBody<{
     productName?: string
     quantity?: number
     unit?: string | null
     consumed?: boolean
+  }>(request)
+
+  if (!body) {
+    return NextResponse.json({ message: 'Invalid request body' }, { status: 400 })
   }
 
   const updatedBatch = await updateBatchItem(ownerEmail, batchId, itemId, body)

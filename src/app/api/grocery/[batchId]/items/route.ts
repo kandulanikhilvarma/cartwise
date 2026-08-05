@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { addBatchItem } from '@/infrastructure/state/batch-store'
+import { parseJsonBody } from '@/shared/lib/http'
 
 type RouteParams = {
   params: Promise<{ batchId: string }>
@@ -15,10 +16,14 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = (await request.json()) as {
+  const body = await parseJsonBody<{
     productName?: string
     quantity?: number
     unit?: string | null
+  }>(request)
+
+  if (!body) {
+    return NextResponse.json({ message: 'Invalid request body' }, { status: 400 })
   }
 
   if (!body.productName?.trim()) {

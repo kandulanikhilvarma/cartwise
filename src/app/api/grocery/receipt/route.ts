@@ -6,9 +6,11 @@ import { enqueueReceiptProcessing } from '@/infrastructure/ocr/receipt-processor
 
 export async function POST(request: Request) {
   const clientKey = requestClientKey(request)
-  const rate = consumeRateLimit(`receipt:${clientKey}`, { limit: 10, windowMs: 60_000 })
-  if (!rate.allowed) {
-    return NextResponse.json({ message: 'Too many receipt uploads. Try again shortly.' }, { status: 429 })
+  if (clientKey) {
+    const rate = consumeRateLimit(`receipt:${clientKey}`, { limit: 10, windowMs: 60_000 })
+    if (!rate.allowed) {
+      return NextResponse.json({ message: 'Too many receipt uploads. Try again shortly.' }, { status: 429 })
+    }
   }
 
   const session = await auth()
@@ -18,7 +20,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
-  const formData = await request.formData()
+  let formData: FormData
+  try {
+    formData = await request.formData()
+  } catch {
+    return NextResponse.json({ message: 'Invalid form data' }, { status: 400 })
+  }
+
   const receipt = formData.get('receipt')
   if (!(receipt instanceof File)) {
     return NextResponse.json({ message: 'Receipt image is required' }, { status: 400 })

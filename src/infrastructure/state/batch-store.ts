@@ -2,7 +2,7 @@ import type { GroceryBatch, GroceryItem } from '@/features/grocery/types'
 import { prisma } from '@/infrastructure/db/client'
 
 const memoryBatches = new Map<string, GroceryBatch>()
-let databaseUnavailable = !process.env.DATABASE_URL
+const databaseUnavailable = !process.env.DATABASE_URL
 
 type BatchRecord = {
   id: string
@@ -454,20 +454,12 @@ function shouldUseDatabase(): boolean {
   return !databaseUnavailable
 }
 
-function disableDatabaseFallback() {
-  databaseUnavailable = true
-}
-
 export async function createProcessingBatch(
   ownerEmail: string,
   receiptName: string,
 ): Promise<GroceryBatch> {
   if (shouldUseDatabase()) {
-    try {
-      return await databaseCreateProcessingBatch(ownerEmail, receiptName)
-    } catch {
-      disableDatabaseFallback()
-    }
+    return databaseCreateProcessingBatch(ownerEmail, receiptName)
   }
 
   return memoryCreateProcessingBatch(receiptName)
@@ -480,11 +472,7 @@ export async function completeBatch(
   storeName?: string | null,
 ): Promise<GroceryBatch | null> {
   if (shouldUseDatabase()) {
-    try {
-      return await databaseCompleteBatch(ownerEmail, batchId, items, storeName)
-    } catch {
-      disableDatabaseFallback()
-    }
+    return databaseCompleteBatch(ownerEmail, batchId, items, storeName)
   }
 
   return memoryCompleteBatch(batchId, items, storeName)
@@ -492,11 +480,7 @@ export async function completeBatch(
 
 export async function getBatch(ownerEmail: string, batchId: string): Promise<GroceryBatch | null> {
   if (shouldUseDatabase()) {
-    try {
-      return await databaseGetBatch(ownerEmail, batchId)
-    } catch {
-      disableDatabaseFallback()
-    }
+    return databaseGetBatch(ownerEmail, batchId)
   }
 
   return loadMemoryBatch(batchId)
@@ -504,11 +488,7 @@ export async function getBatch(ownerEmail: string, batchId: string): Promise<Gro
 
 export async function listBatches(ownerEmail: string): Promise<GroceryBatch[]> {
   if (shouldUseDatabase()) {
-    try {
-      return await databaseListBatches(ownerEmail)
-    } catch {
-      disableDatabaseFallback()
-    }
+    return databaseListBatches(ownerEmail)
   }
 
   return memoryListBatches()
@@ -521,11 +501,7 @@ export async function setItemConsumed(
   consumed: boolean,
 ): Promise<GroceryBatch | null> {
   if (shouldUseDatabase()) {
-    try {
-      return await databaseSetItemConsumed(ownerEmail, batchId, itemId, consumed)
-    } catch {
-      disableDatabaseFallback()
-    }
+    return databaseSetItemConsumed(ownerEmail, batchId, itemId, consumed)
   }
 
   return memorySetItemConsumed(batchId, itemId, consumed)
@@ -537,11 +513,7 @@ export async function addBatchItem(
   input: { productName: string; quantity?: number; unit?: string | null },
 ): Promise<GroceryBatch | null> {
   if (shouldUseDatabase()) {
-    try {
-      return await databaseAddItem(ownerEmail, batchId, input)
-    } catch {
-      disableDatabaseFallback()
-    }
+    return databaseAddItem(ownerEmail, batchId, input)
   }
 
   return memoryAddItem(batchId, input)
@@ -559,11 +531,7 @@ export async function updateBatchItem(
   },
 ): Promise<GroceryBatch | null> {
   if (shouldUseDatabase()) {
-    try {
-      return await databaseUpdateItem(ownerEmail, batchId, itemId, patch)
-    } catch {
-      disableDatabaseFallback()
-    }
+    return databaseUpdateItem(ownerEmail, batchId, itemId, patch)
   }
 
   return memoryUpdateItem(batchId, itemId, patch)
@@ -575,11 +543,7 @@ export async function removeBatchItem(
   itemId: string,
 ): Promise<GroceryBatch | null> {
   if (shouldUseDatabase()) {
-    try {
-      return await databaseRemoveItem(ownerEmail, batchId, itemId)
-    } catch {
-      disableDatabaseFallback()
-    }
+    return databaseRemoveItem(ownerEmail, batchId, itemId)
   }
 
   return memoryRemoveItem(batchId, itemId)
@@ -590,32 +554,29 @@ export async function markBatchFailed(
   batchId: string,
   reason?: string,
 ): Promise<GroceryBatch | null> {
+  if (reason) {
+    console.error(`Receipt OCR failed for batch ${batchId}: ${reason}`)
+  }
+
   if (shouldUseDatabase()) {
-    try {
-      const batch = await prisma.groceryBatch.findFirst({
-        where: {
-          id: batchId,
-          user: { email: ownerEmail },
-        },
-        select: { id: true },
-      })
+    const batch = await prisma.groceryBatch.findFirst({
+      where: {
+        id: batchId,
+        user: { email: ownerEmail },
+      },
+      select: { id: true },
+    })
 
-      if (!batch) {
-        return null
-      }
-
-      await prisma.groceryBatch.update({
-        where: { id: batchId },
-        data: {
-          ocrStatus: 'failed',
-          storeName: reason ? `Processing failed: ${reason.slice(0, 80)}` : undefined,
-        },
-      })
-
-      return await databaseGetBatch(ownerEmail, batchId)
-    } catch {
-      disableDatabaseFallback()
+    if (!batch) {
+      return null
     }
+
+    await prisma.groceryBatch.update({
+      where: { id: batchId },
+      data: { ocrStatus: 'failed' },
+    })
+
+    return databaseGetBatch(ownerEmail, batchId)
   }
 
   const memoryBatch = loadMemoryBatch(batchId)
@@ -626,6 +587,5 @@ export async function markBatchFailed(
   return saveMemoryBatch({
     ...memoryBatch,
     ocrStatus: 'failed',
-    storeName: reason ? `Processing failed: ${reason.slice(0, 80)}` : memoryBatch.storeName,
   })
 }

@@ -101,9 +101,11 @@ type RouteParams = {
 
 export async function GET(_request: Request, { params }: RouteParams) {
   const clientKey = requestClientKey(_request)
-  const rate = consumeRateLimit(`barcode:${clientKey}`, { limit: 60, windowMs: 60_000 })
-  if (!rate.allowed) {
-    return NextResponse.json({ message: 'Too many barcode lookups. Slow down and retry.' }, { status: 429 })
+  if (clientKey) {
+    const rate = consumeRateLimit(`barcode:${clientKey}`, { limit: 60, windowMs: 60_000 })
+    if (!rate.allowed) {
+      return NextResponse.json({ message: 'Too many barcode lookups. Slow down and retry.' }, { status: 429 })
+    }
   }
 
   const { code: rawCode } = await params

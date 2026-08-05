@@ -26,7 +26,10 @@ export function consumeRateLimit(key: string, { limit, windowMs }: RateLimitOpti
   return { allowed: true, remaining: limit - existing.count, resetAt: existing.resetAt }
 }
 
-export function requestClientKey(request: Request): string {
+// Returns null when no client IP is present (e.g. local dev). Callers skip
+// rate limiting in that case rather than sharing one global bucket. Behind
+// Vercel, x-forwarded-for is always set, so production requests are limited.
+export function requestClientKey(request: Request): string | null {
   const forwarded = request.headers.get('x-forwarded-for')
   if (forwarded) {
     const first = forwarded.split(',')[0]?.trim()
@@ -36,7 +39,5 @@ export function requestClientKey(request: Request): string {
   const realIp = request.headers.get('x-real-ip')?.trim()
   if (realIp) return realIp
 
-  // ponytail: no client IP -> shared "unknown" bucket. Phase 2: skip limiting
-  // instead of collapsing every anonymous caller into one bucket.
-  return 'unknown'
+  return null
 }
