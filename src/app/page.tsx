@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
 
@@ -58,12 +59,12 @@ export default function HomePage() {
             </div>
 
             <figure className="home-figure home-hero-figure">
-              <img
+              <Image
                 src="/images/hero-produce.jpg"
                 alt="A supermarket produce wall stocked with greens, peppers, squash and root vegetables."
-                width={1600}
-                height={2000}
-                fetchPriority="high"
+                fill
+                sizes="(max-width: 900px) 100vw, 45vw"
+                priority
               />
               <figcaption className="home-hero-tag">
                 <strong>Receipt</strong>
@@ -95,12 +96,11 @@ export default function HomePage() {
                 ))}
               </div>
               <figure className="home-figure step-figure">
-                <img
+                <Image
                   src="/images/receipt.jpg"
                   alt="Close-up of a printed grocery receipt showing itemised text."
-                  width={1600}
-                  height={1067}
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 900px) 100vw, 40vw"
                 />
               </figure>
             </div>
@@ -161,12 +161,11 @@ export default function HomePage() {
               </div>
             </div>
             <div className="trust-band-media">
-              <img
+              <Image
                 src="/images/shopper.jpg"
                 alt="A shopper carrying a wire basket of groceries beside a produce aisle."
-                width={1600}
-                height={1600}
-                loading="lazy"
+                fill
+                sizes="(max-width: 900px) 100vw, 40vw"
               />
             </div>
           </section>
