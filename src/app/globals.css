@@ -896,6 +896,64 @@ img {
   font-size: clamp(2rem, 4.5vw, 2.9rem);
 }
 
+.upload-drop {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+  padding: 32px 20px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.upload-drop.is-dragging {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 8%, var(--surface-2));
+}
+.upload-drop-hint {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+.upload-drop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.upload-preview {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.upload-preview img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.upload-preview-meta {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.upload-preview-meta strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.upload-preview-meta .button {
+  justify-self: start;
+}
+.upload-process {
+  width: 100%;
+}
+
 .result-card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -935,6 +993,24 @@ img {
 }
 
 /* ---------- Nutrition ---------- */
+
+.barcode-form {
+  display: grid;
+  gap: 14px;
+  max-width: 420px;
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.section-header h2 {
+  font-size: 1.3rem;
+}
 
 .nutrition-summary {
   display: grid;
@@ -984,11 +1060,41 @@ img {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-2);
-  display: grid;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--ink);
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
-.batch-card h3 {
+.batch-card:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.batch-card strong {
+  font-weight: 600;
+}
+.batch-card p {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  margin-top: 2px;
+}
+.batch-card span {
+  color: var(--green-text);
   font-size: 1.2rem;
+}
+
+.empty-state {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  text-align: left;
+}
+.empty-state h2 {
+  font-size: 1.5rem;
+}
+.empty-state p {
+  color: var(--ink-soft);
 }
 .item-form-grid {
   display: grid;

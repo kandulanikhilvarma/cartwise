@@ -14,34 +14,41 @@ export default async function GroceryPage() {
 
   return (
     <main className="surface-page">
-      <section className="surface-card">
-        <p className="eyebrow">Batches</p>
-        <h1>Keep grocery runs in one place.</h1>
-        <p className="lede">
-          Batch history now reads from the shared batch store, so any uploaded receipt appears
-          here right away.
-        </p>
+      <div className="scan-intro">
+        <h1>Your batches</h1>
+        <p className="lede">Every receipt you scan lands here. Open one to see its items and nutrition.</p>
+      </div>
+
+      {batches.length ? (
         <div className="batch-list">
-          {batches.length ? (
-            batches.map((batch) => (
-              <article className="batch-card" key={batch.id}>
+          {batches.map((batch) => {
+            const matched = batch.items.filter((item) => item.matchConfidence != null).length
+            return (
+              <Link className="batch-card" href={`/grocery/${batch.id}`} key={batch.id}>
                 <div>
                   <strong>{batch.storeName ?? 'Grocery batch'}</strong>
                   <p>
                     {batch.ocrStatus === 'processing'
-                      ? 'Receipt is still processing.'
-                      : 'Nutrition summary is ready.'}
+                      ? 'Still processing…'
+                      : batch.items.length === 0
+                        ? 'No items matched'
+                        : `${batch.items.length} items · ${matched} with nutrition`}
                   </p>
                 </div>
-                <span>{batch.ocrStatus}</span>
-                <Link href={`/grocery/${batch.id}`}>Open</Link>
-              </article>
-            ))
-          ) : (
-            <p className="fine-print">No batches yet. Upload one from Scan.</p>
-          )}
+                <span aria-hidden="true">→</span>
+              </Link>
+            )
+          })}
         </div>
-      </section>
+      ) : (
+        <section className="surface-card empty-state">
+          <h2>No batches yet</h2>
+          <p>Scan your first grocery receipt and it’ll show up here.</p>
+          <Link className="button button-primary" href="/scan">
+            Scan a receipt
+          </Link>
+        </section>
+      )}
     </main>
   )
 }

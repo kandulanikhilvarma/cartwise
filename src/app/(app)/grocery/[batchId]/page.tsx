@@ -25,13 +25,10 @@ export default async function BatchPage({ params }: BatchPageProps) {
   return (
     <main className="surface-page">
       <section className="surface-card">
-        <p className="eyebrow">Batch detail</p>
-        <h1>{batch.storeName ?? batchId}</h1>
+        <h1>{batch.storeName ?? 'Grocery batch'}</h1>
         <p className="lede">
-          This is the single batch view. It reads from the same shared batch store as upload, so
-          the route reflects the current app state.
+          Edit a name to re-match nutrition, mark items as eaten, or remove anything that isn’t yours.
         </p>
-        <p className="fine-print">OCR status: {batch.ocrStatus}</p>
         <GroceryItemList batchId={batch.id} items={batch.items} />
       </section>
     </main>
