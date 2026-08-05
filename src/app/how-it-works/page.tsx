@@ -1,14 +1,15 @@
+import Image from 'next/image'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
 
 const flow = [
   {
     title: '1. Capture receipt',
-    body: 'Use camera capture or upload a grocery receipt image from your device.',
+    body: 'Take a photo of your grocery receipt, or upload one from your device.',
   },
   {
-    title: '2. Automatic matching',
-    body: 'OCR parsing runs in the background and converts lines into grocery items.',
+    title: '2. Read on your device',
+    body: 'Your phone reads the receipt text and turns each line into a grocery item.',
   },
   {
     title: '3. Insight summary',
@@ -24,6 +25,9 @@ export default function HowItWorksPage() {
   return (
     <main className="page-shell">
       <MarketingNav />
+      <figure className="page-banner">
+        <Image src="/images/groceries-bag.jpg" alt="A reusable kraft grocery bag." fill sizes="(max-width: 1160px) 100vw, 1120px" priority />
+      </figure>
       <section className="surface-card marketing-article">
         <p className="eyebrow">Product flow</p>
         <h1>From receipt photo to grocery nutrition in one flow.</h1>

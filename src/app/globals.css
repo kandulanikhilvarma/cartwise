@@ -143,18 +143,21 @@ img {
   border-radius: 4px;
 }
 
+/* Hidden off the top edge (not off-side, which caused horizontal scroll on
+   mobile Safari). Slides down only on keyboard focus. */
 .skip-link {
-  position: absolute;
-  left: -9999px;
-  top: 0;
+  position: fixed;
+  top: -60px;
+  left: 12px;
   background: var(--green);
   color: var(--on-green);
   padding: 10px 16px;
-  border-radius: 0 0 10px 0;
-  z-index: 50;
+  border-radius: 0 0 10px 10px;
+  z-index: 100;
+  transition: top 0.15s ease;
 }
 .skip-link:focus {
-  left: 0;
+  top: 0;
 }
 
 /* ---------- Shell ---------- */
@@ -320,7 +323,14 @@ img {
 
 .marketing-nav-cta {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+.nav-user {
+  color: var(--ink-soft);
+  font-weight: 500;
+  font-size: 0.92rem;
+  margin-right: 4px;
 }
 
 .marketing-footer {
@@ -360,45 +370,73 @@ img {
   margin: 0 auto;
 }
 
-.home-hero {
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: clamp(24px, 4vw, 56px);
-  align-items: center;
-  padding: clamp(36px, 6vw, 84px) 0 clamp(28px, 5vw, 64px);
-}
-
-.home-hero h1 {
-  font-size: clamp(2.9rem, 6.4vw, 5rem);
-}
-.home-hero .home-hero-accent {
-  color: var(--green-text);
+.home-hero-full {
   position: relative;
-  white-space: nowrap;
+  min-height: min(84vh, 760px);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.home-hero-full > img {
+  object-fit: cover;
+  object-position: center;
+}
+.home-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(18, 20, 13, 0.2) 0%,
+    rgba(18, 20, 13, 0.34) 42%,
+    rgba(18, 20, 13, 0.86) 100%
+  );
+}
+.home-hero-content {
+  position: relative;
+  width: min(1160px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 0 0 clamp(40px, 6vw, 84px);
+  color: #f7f1e3;
+}
+.home-hero-kicker {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--accent-soft);
+  margin-bottom: 14px;
+}
+.home-hero-content h1 {
+  color: #fbf7ee;
+  font-size: clamp(2.7rem, 6.6vw, 5.2rem);
+  max-width: 18ch;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.32);
 }
 .home-hero-lede {
-  margin-top: 22px;
-  color: var(--ink-soft);
-  font-size: clamp(1.05rem, 1.5vw, 1.22rem);
-  max-width: 46ch;
+  margin-top: 20px;
+  color: rgba(247, 241, 227, 0.92);
+  font-size: clamp(1.05rem, 1.5vw, 1.24rem);
+  max-width: 48ch;
 }
-.home-hero .cta-row {
+.home-hero-content .cta-row {
   margin-top: 30px;
 }
-.home-hero-note {
-  margin-top: 18px;
-  font-size: 0.9rem;
-  color: var(--ink-soft);
-  display: flex;
+.button-hero-ghost {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(247, 241, 227, 0.55);
+  color: #fbf7ee;
+  backdrop-filter: blur(4px);
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.98rem;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
-.home-hero-note::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
+.button-hero-ghost:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fbf7ee;
 }
 
 .home-figure {
@@ -663,6 +701,26 @@ img {
   border-radius: var(--radius-lg);
   padding: clamp(24px, 3vw, 40px);
   box-shadow: var(--shadow-soft);
+}
+
+.page-banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 21 / 8;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin: 16px 0 20px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+  background: var(--surface-2);
+}
+.page-banner img {
+  object-fit: cover;
+}
+@media (max-width: 640px) {
+  .page-banner {
+    aspect-ratio: 16 / 10;
+  }
 }
 
 .marketing-article {
@@ -1175,6 +1233,9 @@ img {
     padding: 20px;
   }
   .marketing-nav-cta .button-secondary {
+    display: none;
+  }
+  .nav-user {
     display: none;
   }
 }
