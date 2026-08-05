@@ -35,47 +35,36 @@ export default function HomePage() {
       </div>
 
       <main id="main">
-        <div className="home">
-          <section className="home-hero">
-            <div>
-              <h1>
-                Snap your receipt.
-                <br />
-                Know <span className="home-hero-accent">what you bought</span>.
-              </h1>
-              <p className="home-hero-lede">
-                Cartwise turns one grocery receipt into a nutrition read of your whole shop — no daily food
-                diary, no logging every meal.
-              </p>
-              <div className="cta-row">
-                <a className="button button-primary" href="/scan">
-                  Scan a receipt
-                </a>
-                <a className="button button-secondary" href="/how-it-works">
-                  See how it works
-                </a>
-              </div>
-              <p className="home-hero-note">One receipt in. Real nutrition out.</p>
+        <section className="home-hero-full">
+          <Image
+            src="/images/hero-produce.jpg"
+            alt="A supermarket produce wall stocked with greens, peppers, squash and root vegetables."
+            fill
+            sizes="100vw"
+            priority
+          />
+          <div className="home-hero-overlay" aria-hidden="true" />
+          <div className="home-hero-content">
+            <p className="home-hero-kicker">Receipt → matched items → nutrition read</p>
+            <h1>
+              Snap your receipt.
+              <br />
+              Know what you bought.
+            </h1>
+            <p className="home-hero-lede">
+              Cartwise turns one grocery receipt into a nutrition read of your whole shop — no daily food
+              diary, no logging every meal.
+            </p>
+            <div className="cta-row">
+              <a className="button button-primary" href="/scan">
+                Scan a receipt
+              </a>
+              <a className="button button-hero-ghost" href="/how-it-works">
+                See how it works
+              </a>
             </div>
-
-            <figure className="home-figure home-hero-figure">
-              <Image
-                src="/images/hero-produce.jpg"
-                alt="A supermarket produce wall stocked with greens, peppers, squash and root vegetables."
-                fill
-                sizes="(max-width: 900px) 100vw, 45vw"
-                priority
-              />
-              <figcaption className="home-hero-tag">
-                <strong>Receipt</strong>
-                <span>→</span>
-                <strong>matched items</strong>
-                <span>→</span>
-                <strong>nutrition read</strong>
-              </figcaption>
-            </figure>
-          </section>
-        </div>
+          </div>
+        </section>
 
         <div className="home">
           <section className="home-band" id="how-it-works">
@@ -97,8 +86,8 @@ export default function HomePage() {
               </div>
               <figure className="home-figure step-figure">
                 <Image
-                  src="/images/receipt.jpg"
-                  alt="Close-up of a printed grocery receipt showing itemised text."
+                  src="/images/groceries.jpg"
+                  alt="A cardboard box of fresh groceries — apples, bananas and greens."
                   fill
                   sizes="(max-width: 900px) 100vw, 40vw"
                 />

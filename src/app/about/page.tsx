@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
 
@@ -5,6 +6,9 @@ export default function AboutPage() {
   return (
     <main className="page-shell">
       <MarketingNav />
+      <figure className="page-banner">
+        <Image src="/images/produce-flatlay.jpg" alt="A colourful spread of fresh vegetables." fill sizes="(max-width: 1160px) 100vw, 1120px" priority />
+      </figure>
       <section className="surface-card marketing-article">
         <p className="eyebrow">About Cartwise</p>
         <h1>Built for people who actually buy groceries every week.</h1>
