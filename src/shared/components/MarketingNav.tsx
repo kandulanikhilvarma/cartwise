@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Logo } from '@/shared/components/Logo'
 
 const links = [
   { href: '/how-it-works', label: 'How it works' },
@@ -10,8 +11,8 @@ const links = [
 export function MarketingNav() {
   return (
     <header className="marketing-nav" aria-label="Marketing navigation">
-      <Link className="brand" href="/">
-        Cartwise
+      <Link href="/" aria-label="Cartwise home">
+        <Logo />
       </Link>
       <nav className="marketing-nav-links">
         {links.map((link) => (

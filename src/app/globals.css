@@ -280,6 +280,25 @@ img {
   color: var(--ink);
 }
 
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+}
+.logo-mark {
+  width: 1.55em;
+  height: 1.55em;
+  color: var(--green-text);
+  flex: none;
+}
+.logo-word {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
 .marketing-nav-links {
   display: flex;
   justify-content: center;
@@ -702,12 +721,18 @@ img {
 
 .auth-shell {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+.auth-topbar {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  padding-bottom: 8px;
 }
 .auth-card {
-  width: min(460px, 100%);
+  width: min(440px, 100%);
+  margin: auto;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -717,11 +742,25 @@ img {
   gap: 16px;
 }
 .auth-card h1 {
-  font-size: 1.9rem;
+  font-size: clamp(1.7rem, 4vw, 2.2rem);
 }
 .auth-provider-grid {
   display: grid;
   gap: 10px;
+  margin-top: 4px;
+}
+.auth-provider-grid .button {
+  width: 100%;
+  padding: 14px 22px;
+}
+.auth-back {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  font-weight: 500;
+  width: fit-content;
+}
+.auth-back:hover {
+  color: var(--ink);
 }
 
 /* ---------- App shell ---------- */
@@ -828,8 +867,33 @@ img {
   color: var(--ink);
 }
 .upload-field input[type='file'] {
-  padding: 10px;
+  padding: 10px 12px;
   cursor: pointer;
+  border-style: dashed;
+}
+.upload-field input[type='file']::file-selector-button {
+  font: inherit;
+  font-weight: 600;
+  margin-right: 14px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--green);
+  color: var(--on-green);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.upload-field input[type='file']::file-selector-button:hover {
+  background: var(--green-deep);
+}
+
+.scan-intro {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0 4px;
+}
+.scan-intro h1 {
+  font-size: clamp(2rem, 4.5vw, 2.9rem);
 }
 
 .result-card {

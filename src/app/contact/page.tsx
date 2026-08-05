@@ -7,27 +7,21 @@ export default function ContactPage() {
     <main className="page-shell">
       <MarketingNav />
       <section className="surface-card marketing-article">
-        <p className="eyebrow">Contact</p>
-        <h1>Reach the Cartwise team.</h1>
+        <h1>Get in touch.</h1>
         <p className="lede">
-          For product feedback, support, or collaboration questions, use the channels below.
+          Product feedback, support, a wrong nutrition match, or a partnership — email us and we’ll reply.
         </p>
-        <div className="article-grid">
-          <article className="feature-card">
-            <h2>Product feedback</h2>
-            <p>Share your scan flow pain points and improvement ideas while MVP evolves.</p>
-          </article>
-          <article className="feature-card">
-            <h2>Operational support</h2>
-            <p>If account access or data display looks wrong, include context and timestamps.</p>
-          </article>
-        </div>
+        <p>
+          <a className="button button-primary" href="mailto:kandulanikhilvarma@gmail.com">
+            kandulanikhilvarma@gmail.com
+          </a>
+        </p>
+        <p className="fine-print">
+          For a scan or account issue, include what you did and roughly when — it helps us reproduce it fast.
+        </p>
         <div className="cta-row">
-          <Link className="button button-primary" href="/login">
-            Go to login
-          </Link>
           <Link className="button button-secondary" href="/">
-            Back to homepage
+            Back to home
           </Link>
         </div>
       </section>

@@ -1,44 +1,23 @@
 import Link from 'next/link'
 import { ReceiptUploader } from '@/features/grocery/components/ReceiptUploader'
 
-const flow = [
-  'Capture your grocery receipt',
-  'Auto-match line items without manual review steps',
-  'Get three nutrition signals and edit only if needed',
-]
-
 export default function ScanPage() {
   return (
     <main className="surface-page">
-      <section className="surface-card">
-        <p className="eyebrow">Capture flow</p>
-        <h1>Receipt first. Value in one pass.</h1>
+      <div className="scan-intro">
+        <h1>Scan a receipt.</h1>
         <p className="lede">
-          The scan route is the core habit loop. Drop a receipt, let processing run, and review the
-          nutrition output with lightweight corrections.
+          Snap or upload your latest grocery receipt. It’s read on your device, matched to real nutrition
+          data, and saved to your batches — no item-by-item confirming.
         </p>
-        <div className="flow-list">
-          {flow.map((item, index) => (
-            <div className="flow-item" key={item}>
-              <span>{index + 1}</span>
-              <p>{item}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      </div>
 
       <ReceiptUploader />
 
-      <section className="surface-card">
-        <div className="cta-row">
-          <Link className="button button-primary" href="/login">
-            Save a batch
-          </Link>
-          <Link className="button button-secondary" href="/barcode">
-            Try barcode lookup
-          </Link>
-        </div>
-      </section>
+      <p className="fine-print">
+        Missed an item, or scanning a single product?{' '}
+        <Link href="/barcode">Look it up by barcode</Link>.
+      </p>
     </main>
   )
 }

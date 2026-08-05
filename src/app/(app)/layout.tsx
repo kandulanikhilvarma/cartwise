@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { auth } from '@/auth'
 import { SignOutButton } from '@/features/auth/components/SignOutButton'
+import { Logo } from '@/shared/components/Logo'
 
 const navItems = [
   { href: '/scan', label: 'Scan' },
@@ -19,8 +20,8 @@ export default async function AppLayout({
   return (
     <div className="app-shell">
       <header className="app-header">
-        <Link className="brand" href="/">
-          Cartwise
+        <Link href="/" aria-label="Cartwise home">
+          <Logo />
         </Link>
         <div className="auth-chip">
           {session?.user?.email ?? 'Guest'}

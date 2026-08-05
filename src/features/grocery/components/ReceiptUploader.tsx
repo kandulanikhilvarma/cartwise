@@ -60,9 +60,8 @@ export function ReceiptUploader() {
     <div className="receipt-uploader">
       <div className="upload-card">
         <div className="upload-visual">
-          <p className="eyebrow">Receipt first</p>
-          <h2>Start with your latest grocery receipt.</h2>
-          <p>Text is read on your device, then matched to real nutrition data. Nothing is uploaded but the text.</p>
+          <h2>Upload your receipt</h2>
+          <p>Read on your device — only the text is sent, never the photo.</p>
         </div>
 
         <label className="upload-field">
