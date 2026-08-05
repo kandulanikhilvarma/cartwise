@@ -4,60 +4,6 @@ import { prisma } from '@/infrastructure/db/client'
 const memoryBatches = new Map<string, GroceryBatch>()
 let databaseUnavailable = !process.env.DATABASE_URL
 
-const demoItems: GroceryItem[] = [
-  {
-    id: 'item-001',
-    productName: 'Greek yogurt',
-    quantity: 1,
-    unit: 'pack',
-    matchConfidence: 0.92,
-    caloriesKcal: 120,
-    proteinG: 12,
-    carbsG: 8,
-    fatG: 4,
-    sodiumMg: 65,
-    vitaminDMcg: 2,
-    ironMg: 0,
-    calciumMg: 180,
-    consumed: false,
-    consumedAt: null,
-  },
-  {
-    id: 'item-002',
-    productName: 'Spinach',
-    quantity: 1,
-    unit: 'bag',
-    matchConfidence: 0.88,
-    caloriesKcal: 35,
-    proteinG: 4,
-    carbsG: 6,
-    fatG: 0,
-    sodiumMg: 55,
-    vitaminDMcg: 0,
-    ironMg: 2,
-    calciumMg: 99,
-    consumed: false,
-    consumedAt: null,
-  },
-  {
-    id: 'item-003',
-    productName: 'Oats',
-    quantity: 1,
-    unit: 'box',
-    matchConfidence: 0.84,
-    caloriesKcal: 180,
-    proteinG: 6,
-    carbsG: 32,
-    fatG: 3,
-    sodiumMg: 2,
-    vitaminDMcg: 0,
-    ironMg: 1,
-    calciumMg: 20,
-    consumed: false,
-    consumedAt: null,
-  },
-]
-
 type BatchRecord = {
   id: string
   storeName: string | null
@@ -112,26 +58,6 @@ function toGroceryBatch(batch: BatchRecord): GroceryBatch {
   }
 }
 
-function makeDemoItems(batchId: string) {
-  return demoItems.map((item) => ({
-    batchId,
-    productName: item.productName,
-    quantity: item.quantity,
-    unit: item.unit ?? null,
-    matchConfidence: item.matchConfidence ?? null,
-    caloriesKcal: item.caloriesKcal ?? null,
-    proteinG: item.proteinG ?? null,
-    carbsG: item.carbsG ?? null,
-    fatG: item.fatG ?? null,
-    sodiumMg: item.sodiumMg ?? null,
-    vitaminDMcg: item.vitaminDMcg ?? null,
-    ironMg: item.ironMg ?? null,
-    calciumMg: item.calciumMg ?? null,
-    consumed: item.consumed ?? false,
-    consumedAt: item.consumedAt ? new Date(item.consumedAt) : null,
-  }))
-}
-
 function saveMemoryBatch(batch: GroceryBatch): GroceryBatch {
   memoryBatches.set(batch.id, batch)
   return batch
@@ -163,7 +89,7 @@ function memoryCompleteBatch(
     ...batch,
     storeName: storeName ?? batch.storeName,
     ocrStatus: 'done',
-    items: items.length ? items : demoItems,
+    items,
   })
 }
 
@@ -349,7 +275,7 @@ async function databaseCompleteBatch(
     })
 
     await tx.groceryItem.createMany({
-      data: (items.length ? items : demoItems).map((item) => ({
+      data: items.map((item) => ({
         batchId: batch.id,
         productName: item.productName,
         quantity: item.quantity,
@@ -550,7 +476,7 @@ export async function createProcessingBatch(
 export async function completeBatch(
   ownerEmail: string,
   batchId: string,
-  items: GroceryItem[] = demoItems,
+  items: GroceryItem[] = [],
   storeName?: string | null,
 ): Promise<GroceryBatch | null> {
   if (shouldUseDatabase()) {

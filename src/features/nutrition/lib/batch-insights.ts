@@ -1,4 +1,5 @@
 import type { GroceryItem } from '@/features/grocery/types'
+import { RDA } from './rda-constants'
 
 export type Insight = {
   label: string
@@ -15,12 +16,12 @@ export function computeBatchInsights(items: GroceryItem[]): Insight[] {
     {
       label: 'Calories',
       value: `${Math.round(totalCalories)} kcal`,
-      tone: totalCalories > 2200 ? 'warning' : 'good',
+      tone: totalCalories > RDA.caloriesKcal ? 'warning' : 'good',
     },
     {
       label: 'Sodium',
       value: `${Math.round(sodiumTotal)} mg`,
-      tone: sodiumTotal > 2300 ? 'warning' : 'neutral',
+      tone: sodiumTotal > RDA.sodiumMg ? 'warning' : 'neutral',
     },
     {
       label: 'Vitamin D sources',
