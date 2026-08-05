@@ -1,3 +1,13 @@
 .next/
 node_modules/
+out/
+
+# env — keep .env.example tracked, ignore real secrets
 .env
+.env*.local
+
+# build / test artifacts
+*.tsbuildinfo
+coverage/
+
+.DS_Store
