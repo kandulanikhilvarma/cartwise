@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { consumeRateLimit, requestClientKey } from '@/infrastructure/cache/rate-limit'
 
 type BarcodeProduct = {
   code: string
@@ -15,7 +16,7 @@ const fallbackDatabase: Record<string, BarcodeProduct> = {
   '0123456789012': {
     code: '0123456789012',
     productName: 'Peanut butter',
-    brand: 'NutriLens Pantry',
+    brand: 'Cartwise Pantry',
     caloriesKcal: 190,
     proteinG: 8,
     carbsG: 7,
@@ -25,7 +26,7 @@ const fallbackDatabase: Record<string, BarcodeProduct> = {
   '036000291452': {
     code: '036000291452',
     productName: 'Greek yogurt',
-    brand: 'NutriLens Pantry',
+    brand: 'Cartwise Pantry',
     caloriesKcal: 120,
     proteinG: 12,
     carbsG: 8,
@@ -72,7 +73,7 @@ function toProduct(code: string, product: Record<string, unknown>): BarcodeProdu
 async function fetchOpenFoodFacts(code: string): Promise<BarcodeProduct | null> {
   const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`, {
     headers: {
-      'user-agent': 'NutriLens/1.0',
+      'user-agent': 'Cartwise/1.0',
       accept: 'application/json',
     },
     cache: 'no-store',
@@ -99,6 +100,14 @@ type RouteParams = {
 }
 
 export async function GET(_request: Request, { params }: RouteParams) {
+  const clientKey = requestClientKey(_request)
+  if (clientKey) {
+    const rate = consumeRateLimit(`barcode:${clientKey}`, { limit: 60, windowMs: 60_000 })
+    if (!rate.allowed) {
+      return NextResponse.json({ message: 'Too many barcode lookups. Slow down and retry.' }, { status: 429 })
+    }
+  }
+
   const { code: rawCode } = await params
   const code = normalizeCode(rawCode)
 

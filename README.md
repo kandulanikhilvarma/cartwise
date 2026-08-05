@@ -1,6 +1,6 @@
-# FoodLens
+# Cartwise
 
-FoodLens is the working repo for NutriLens, a receipt-first grocery nutrition app.
+Cartwise is a receipt-first grocery nutrition app: snap a grocery receipt, get a matched grocery batch with real nutrition data and a simple summary.
 
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white) [![License](https://img.shields.io/badge/License-Apache%202.0-green)](LICENSE)
 
@@ -22,11 +22,12 @@ FoodLens is the working repo for NutriLens, a receipt-first grocery nutrition ap
 - Build currently passes
 
 ## Env
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `NEXTAUTH_SECRET`
-- `NEXTAUTH_URL`
-- `DATABASE_URL`
+Copy `.env.example` to `.env.local` and fill in:
+- `DATABASE_URL` — Neon Postgres (pooled)
+- `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- `GITHUB_ID`, `GITHUB_SECRET` — optional
+- `USDA_FDC_API_KEY` — free key for nutrition lookup
 
 ## Structure
 - `src/app/` - routes and pages
@@ -35,7 +36,6 @@ FoodLens is the working repo for NutriLens, a receipt-first grocery nutrition ap
 - `src/infrastructure/` - db, cache, and services
 - `prisma/` - schema and migrations
 - `docs/` - specs and notes
-- `tests/` - unit and e2e tests
 
 ## Architecture
 

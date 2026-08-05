@@ -1,44 +1,23 @@
 import Link from 'next/link'
 import { ReceiptUploader } from '@/features/grocery/components/ReceiptUploader'
 
-const flow = [
-  'Upload a receipt or capture it on mobile',
-  'Match grocery items automatically',
-  'Review a clean summary before saving',
-]
-
 export default function ScanPage() {
   return (
     <main className="surface-page">
-      <section className="surface-card">
-        <p className="eyebrow">Capture flow</p>
-        <h1>Show what the product does before asking for more effort.</h1>
+      <div className="scan-intro">
+        <h1>Scan a receipt.</h1>
         <p className="lede">
-          Start with the value story, then try the receipt flow below. This keeps the first touch
-          calm while still proving the app can turn a grocery receipt into useful nutrition output.
+          Snap or upload your latest grocery receipt. It’s read on your device, matched to real nutrition
+          data, and saved to your batches — no item-by-item confirming.
         </p>
-        <div className="flow-list">
-          {flow.map((item, index) => (
-            <div className="flow-item" key={item}>
-              <span>{index + 1}</span>
-              <p>{item}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      </div>
 
       <ReceiptUploader />
 
-      <section className="surface-card">
-        <div className="cta-row">
-          <Link className="button button-primary" href="/login">
-            Save a batch
-          </Link>
-          <Link className="button button-secondary" href="/barcode">
-            Try barcode lookup
-          </Link>
-        </div>
-      </section>
+      <p className="fine-print">
+        Missed an item, or scanning a single product?{' '}
+        <Link href="/barcode">Look it up by barcode</Link>.
+      </p>
     </main>
   )
 }
