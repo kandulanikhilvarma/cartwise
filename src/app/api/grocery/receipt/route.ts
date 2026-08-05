@@ -34,9 +34,14 @@ export async function POST(request: Request) {
 
   const fileName = typeof body.fileName === 'string' && body.fileName.trim() ? body.fileName.trim() : 'receipt'
 
-  const parsed = await parseReceiptLines(lines)
-  const batch = await createProcessingBatch(ownerEmail, fileName)
-  const completed = await completeBatch(ownerEmail, batch.id, parsed.items, parsed.storeName ?? fileName)
-
-  return NextResponse.json(completed ?? batch)
+  try {
+    const parsed = await parseReceiptLines(lines)
+    const batch = await createProcessingBatch(ownerEmail, fileName)
+    const completed = await completeBatch(ownerEmail, batch.id, parsed.items, parsed.storeName ?? fileName)
+    return NextResponse.json(completed ?? batch)
+  } catch (error) {
+    console.error('Receipt processing failed:', error)
+    const message = error instanceof Error ? error.message : 'Receipt processing failed'
+    return NextResponse.json({ message: `Couldn’t save this batch: ${message}` }, { status: 500 })
+  }
 }
