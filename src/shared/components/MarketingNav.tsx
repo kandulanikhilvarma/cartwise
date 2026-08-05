@@ -22,10 +22,10 @@ export function MarketingNav() {
       </nav>
       <div className="marketing-nav-cta">
         <Link className="button button-secondary" href="/login">
-          Login
+          Sign in
         </Link>
         <Link className="button button-primary" href="/scan">
-          Start scan
+          Scan a receipt
         </Link>
       </div>
     </header>

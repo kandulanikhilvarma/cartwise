@@ -1,116 +1,196 @@
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
 
-const outcomes = [
-  {
-    title: 'Receipt scan is the entry point',
-    text: 'Start with one grocery receipt and immediately get structured items you can review.',
-  },
-  {
-    title: 'Three nutrition signals on first load',
-    text: 'Get one high concern, one deficiency signal, and one positive takeaway from your shop.',
-  },
-  {
-    title: 'Corrections stay lightweight',
-    text: 'Only edit or remove an item when OCR misses. No forced confirmation checklist.',
-  },
-]
-
 const steps = [
-  'Capture or upload your grocery receipt',
-  'We parse and match items automatically in the background',
-  'Review your batch, edit if needed, and track what you consumed',
+  {
+    title: 'Photograph your receipt',
+    text: 'Open Cartwise after a shop and snap the receipt, or upload a photo. The camera opens straight away.',
+  },
+  {
+    title: 'Text is read on your device',
+    text: 'Your phone reads the receipt itself. Only the extracted text is sent on — the image never leaves your device.',
+  },
+  {
+    title: 'Items matched to real nutrition',
+    text: 'Each line is matched against USDA and Open Food Facts data. Anything we can’t match is shown honestly, never guessed.',
+  },
 ]
 
 const trustNotes = [
-  'Google sign-in only. No password setup.',
-  'Receipt images are processed for OCR and not meant as permanent storage.',
-  'Barcode lookup is available when an item is missed on receipt scan.',
+  'The receipt photo stays on your device. We only receive the text it contains.',
+  'Nutrition comes from USDA FoodData Central and Open Food Facts — real figures, not estimates we invented.',
+  'Unmatched items are labelled as unmatched. Cartwise never fills in numbers to look complete.',
+  'Sign in with Google. No password to set, no onboarding form before you see value.',
 ]
 
 export default function HomePage() {
   return (
-    <main className="page-shell">
-      <MarketingNav />
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">Cartwise for weekly grocery shoppers</p>
-          <h1 className="hero-title">Snap your receipt. Know what you bought and what it means.</h1>
-          <p className="lede">
-            Cartwise turns one receipt into a grocery batch, nutrition summary, and actionable
-            signals in under a minute without manual meal logging.
-          </p>
-          <p className="hero-support">No onboarding form. No calorie diary setup. One clear first step.</p>
-          <div className="cta-row">
-            <a className="button button-primary" href="/scan">
-              Start with receipt scan
-            </a>
-            <a className="button button-secondary" href="/login">
-              Sign in with Google
-            </a>
-          </div>
-        </div>
+    <>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <div className="home">
+        <MarketingNav />
+      </div>
 
-        <aside className="hero-panel" aria-label="Product summary">
-          <div className="panel-badge">Zero-friction MVP</div>
-          <div className="panel-title">Built to remove daily logging fatigue</div>
-          <div className="panel-metric">
-            <span>&lt; 10s</span>
-            <small>target OCR processing window</small>
-          </div>
-          <div className="panel-metric">
-            <span>3</span>
-            <small>first insights per batch</small>
-          </div>
-          <div className="panel-metric">
-            <span>4</span>
-            <small>focused MVP capabilities</small>
-          </div>
-        </aside>
-      </section>
-
-      <section className="feature-strip" id="features">
-        {outcomes.map((item) => (
-          <article className="feature-card" key={item.title}>
-            <h2>{item.title}</h2>
-            <p>{item.text}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="process" id="how-it-works">
-        <div className="section-header">
-          <h2>How the first value loop works</h2>
-        </div>
-        <div className="step-list">
-          {steps.map((step, index) => (
-            <div className="step" key={step}>
-              <span>{index + 1}</span>
-              <p>{step}</p>
+      <main id="main">
+        <div className="home">
+          <section className="home-hero">
+            <div>
+              <h1>
+                Snap your receipt.
+                <br />
+                Know <span className="home-hero-accent">what you bought</span>.
+              </h1>
+              <p className="home-hero-lede">
+                Cartwise turns one grocery receipt into a nutrition read of your whole shop — no daily food
+                diary, no logging every meal.
+              </p>
+              <div className="cta-row">
+                <a className="button button-primary" href="/scan">
+                  Scan a receipt
+                </a>
+                <a className="button button-secondary" href="/how-it-works">
+                  See how it works
+                </a>
+              </div>
+              <p className="home-hero-note">One receipt in. Real nutrition out.</p>
             </div>
-          ))}
-        </div>
-      </section>
 
-      <section className="surface-card home-trust" aria-label="Trust and product boundaries">
-        <div className="section-header">
-          <h2>What this product does and does not do</h2>
+            <figure className="home-figure home-hero-figure">
+              <img
+                src="/images/hero-produce.jpg"
+                alt="A supermarket produce wall stocked with greens, peppers, squash and root vegetables."
+                width={1600}
+                height={2000}
+                fetchPriority="high"
+              />
+              <figcaption className="home-hero-tag">
+                <strong>Receipt</strong>
+                <span>→</span>
+                <strong>matched items</strong>
+                <span>→</span>
+                <strong>nutrition read</strong>
+              </figcaption>
+            </figure>
+          </section>
         </div>
-        <div className="trust-list">
-          {trustNotes.map((note) => (
-            <p key={note}>{note}</p>
-          ))}
+
+        <div className="home">
+          <section className="home-band" id="how-it-works">
+            <div className="home-band-head">
+              <h2>From a crumpled receipt to a clear read.</h2>
+              <p>Three steps, most of it automatic. You only step in when a match looks wrong.</p>
+            </div>
+            <div className="step-flow">
+              <div className="step-flow-list">
+                {steps.map((step, index) => (
+                  <div className="step-row" key={step.title}>
+                    <span className="step-index">{index + 1}</span>
+                    <div>
+                      <h3>{step.title}</h3>
+                      <p>{step.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <figure className="home-figure step-figure">
+                <img
+                  src="/images/receipt.jpg"
+                  alt="Close-up of a printed grocery receipt showing itemised text."
+                  width={1600}
+                  height={1067}
+                  loading="lazy"
+                />
+              </figure>
+            </div>
+          </section>
         </div>
-        <div className="cta-row">
-          <a className="button button-primary" href="/scan">
-            Try receipt flow now
-          </a>
-          <a className="button button-secondary" href="/barcode">
-            Use barcode fallback
-          </a>
+
+        <div className="home">
+          <section className="signal-band">
+            <div className="signal-grid">
+              <div className="home-band-head" style={{ marginBottom: 0 }}>
+                <h2>Three signals, not a spreadsheet.</h2>
+                <p>
+                  Every batch opens with a short, plain read of your shop — one thing to watch, one gap, one
+                  win. Tap through for the full breakdown when you want it.
+                </p>
+              </div>
+
+              <div className="signal-demo" aria-label="Example nutrition read">
+                <div className="signal-demo-head">
+                  <h3>This week’s shop</h3>
+                  <span>Example read</span>
+                </div>
+                <div className="signal-line">
+                  <div>
+                    <span className="signal-line-label">Sodium</span>
+                    <span className="signal-line-note">Running high across packaged items</span>
+                  </div>
+                  <span className="signal-tag is-warn">Watch</span>
+                </div>
+                <div className="signal-line">
+                  <div>
+                    <span className="signal-line-label">Vitamin D sources</span>
+                    <span className="signal-line-note">No sources in this batch</span>
+                  </div>
+                  <span className="signal-tag is-warn">Gap</span>
+                </div>
+                <div className="signal-line">
+                  <div>
+                    <span className="signal-line-label">Fresh produce</span>
+                    <span className="signal-line-note">Six matched fruit and veg items</span>
+                  </div>
+                  <span className="signal-tag is-good">Win</span>
+                </div>
+                <p className="signal-demo-foot">Illustrative figures. Your read is built from your own receipt.</p>
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
-      <MarketingFooter />
-    </main>
+
+        <div className="home">
+          <section className="trust-band" aria-label="How Cartwise handles your data">
+            <div className="trust-band-copy">
+              <h2>Honest by default.</h2>
+              <div className="trust-list">
+                {trustNotes.map((note) => (
+                  <p key={note}>{note}</p>
+                ))}
+              </div>
+            </div>
+            <div className="trust-band-media">
+              <img
+                src="/images/shopper.jpg"
+                alt="A shopper carrying a wire basket of groceries beside a produce aisle."
+                width={1600}
+                height={1600}
+                loading="lazy"
+              />
+            </div>
+          </section>
+        </div>
+
+        <div className="home">
+          <section className="home-close">
+            <h2>Your next shop can tell you something.</h2>
+            <p>Scan one receipt and see what a week of groceries adds up to.</p>
+            <div className="cta-row">
+              <a className="button button-primary" href="/scan">
+                Scan your first receipt
+              </a>
+              <a className="button button-secondary" href="/barcode">
+                Try a barcode instead
+              </a>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <div className="home">
+        <MarketingFooter />
+      </div>
+    </>
   )
 }
