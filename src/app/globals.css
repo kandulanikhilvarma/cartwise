@@ -1,14 +1,14 @@
 :root {
-  --bg: #f4efe6;
-  --bg-accent: #efe3d0;
-  --surface: rgba(255, 255, 255, 0.72);
-  --surface-strong: #fff9f1;
-  --text: #132016;
-  --muted: #5d6b62;
-  --line: rgba(19, 32, 22, 0.12);
-  --accent: #0f7a4f;
-  --accent-dark: #0b5f3d;
-  --shadow: 0 24px 80px rgba(31, 44, 36, 0.14);
+  --bg: #edf1f4;
+  --bg-accent: #dce5ec;
+  --surface: rgba(255, 255, 255, 0.74);
+  --surface-strong: #f8fbff;
+  --text: #111a24;
+  --muted: #516071;
+  --line: rgba(17, 26, 36, 0.12);
+  --accent: #1f6feb;
+  --accent-dark: #0f4eb0;
+  --shadow: 0 24px 80px rgba(22, 38, 58, 0.16);
 }
 
 * {
@@ -25,9 +25,9 @@ body {
   color: var(--text);
   font-family: var(--font-manrope), sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(15, 122, 79, 0.15), transparent 32%),
-    radial-gradient(circle at top right, rgba(247, 170, 64, 0.16), transparent 28%),
-    linear-gradient(180deg, #fbf7f0 0%, var(--bg) 58%, #f6f0e6 100%);
+    radial-gradient(circle at top left, rgba(31, 111, 235, 0.16), transparent 33%),
+    radial-gradient(circle at top right, rgba(25, 98, 211, 0.1), transparent 26%),
+    linear-gradient(180deg, #f7fafe 0%, var(--bg) 56%, #e9eef3 100%);
 }
 
 a {
@@ -48,6 +48,51 @@ a {
   align-items: stretch;
 }
 
+.marketing-nav,
+.marketing-footer {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  border-radius: 22px;
+  padding: 14px 18px;
+}
+
+.marketing-nav {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.marketing-nav-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.marketing-nav-links a {
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.marketing-nav-links a:hover {
+  border-color: var(--line);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.marketing-nav-cta {
+  display: flex;
+  gap: 8px;
+}
+
 .hero-copy,
 .hero-panel,
 .feature-card,
@@ -62,6 +107,17 @@ a {
 .hero-copy {
   border-radius: 28px;
   padding: 44px;
+}
+
+.hero-title {
+  max-width: 12ch;
+}
+
+.hero-support {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.96rem;
+  font-weight: 700;
 }
 
 .eyebrow {
@@ -346,6 +402,31 @@ h1 {
   color: var(--muted);
 }
 
+.item-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.item-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(90px, 0.5fr) minmax(100px, 0.6fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.item-form-grid-inline {
+  grid-template-columns: minmax(0, 1.4fr) minmax(90px, 0.45fr) minmax(100px, 0.55fr);
+}
+
 .batch-card a {
   font-weight: 700;
   color: var(--accent-dark);
@@ -387,6 +468,28 @@ h1 {
 
 .upload-field input {
   width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0 14px;
+  color: var(--text);
+  font: inherit;
+}
+
+input {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  font: inherit;
+  padding: 0 12px;
+}
+
+input:focus-visible {
+  outline: 2px solid rgba(15, 122, 79, 0.3);
+  outline-offset: 1px;
 }
 
 .result-card {
@@ -414,6 +517,12 @@ h1 {
 .nutrition-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.nutrition-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -447,10 +556,103 @@ h1 {
   border-color: var(--line);
 }
 
+.button-danger {
+  border-color: rgba(156, 47, 47, 0.35);
+  color: #7e2323;
+  background: rgba(235, 97, 97, 0.08);
+}
+
+.button-danger:hover {
+  background: rgba(235, 97, 97, 0.16);
+}
+
 .process {
   border-radius: 28px;
   margin-top: 18px;
   padding: 32px;
+}
+
+.home-trust {
+  margin-top: 18px;
+}
+
+.marketing-article {
+  margin-top: 18px;
+}
+
+.article-grid,
+.faq-list,
+.legal-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.article-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.legal-list p,
+.article-grid article p {
+  margin: 0;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.legal-list p {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.58);
+  padding: 14px 16px;
+}
+
+.marketing-footer {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.marketing-footer p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.marketing-footer-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.marketing-footer-links a {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.marketing-footer-links a:hover {
+  color: var(--text);
+}
+
+.auth-provider-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.trust-list {
+  display: grid;
+  gap: 12px;
+}
+
+.trust-list p {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.58);
+  padding: 14px 16px;
+  color: var(--muted);
+  line-height: 1.6;
 }
 
 .section-header {
@@ -494,14 +696,38 @@ h1 {
 @media (max-width: 900px) {
   .hero,
   .feature-strip,
-  .step-list {
+  .step-list,
+  .nutrition-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .marketing-nav,
+  .marketing-footer,
+  .article-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-nav-links {
+    justify-content: flex-start;
+  }
+
+  .marketing-nav-cta {
+    flex-wrap: wrap;
   }
 
   .hero-copy,
   .hero-panel,
   .process {
     padding: 24px;
+  }
+
+  .item-form-grid,
+  .item-form-grid-inline {
+    grid-template-columns: 1fr;
+  }
+
+  .item-actions {
+    justify-content: flex-start;
   }
 }
 
@@ -511,8 +737,10 @@ h1 {
     padding-top: 20px;
   }
 
-  h1 {
-    max-width: 12ch;
+  .hero-title {
+    max-width: 15ch;
+    font-size: clamp(2.3rem, 11vw, 3.2rem);
+    line-height: 1;
   }
 
   .cta-row {
@@ -521,5 +749,9 @@ h1 {
 
   .button {
     width: 100%;
+  }
+
+  .marketing-footer-links {
+    grid-template-columns: 1fr;
   }
 }

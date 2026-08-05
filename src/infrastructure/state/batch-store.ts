@@ -1,7 +1,6 @@
 import type { GroceryBatch, GroceryItem } from '@/features/grocery/types'
 import { prisma } from '@/infrastructure/db/client'
 
-const completionTimers = new Map<string, ReturnType<typeof setTimeout>>()
 const memoryBatches = new Map<string, GroceryBatch>()
 let databaseUnavailable = !process.env.DATABASE_URL
 
@@ -11,6 +10,7 @@ const demoItems: GroceryItem[] = [
     productName: 'Greek yogurt',
     quantity: 1,
     unit: 'pack',
+    matchConfidence: 0.92,
     caloriesKcal: 120,
     proteinG: 12,
     carbsG: 8,
@@ -27,6 +27,7 @@ const demoItems: GroceryItem[] = [
     productName: 'Spinach',
     quantity: 1,
     unit: 'bag',
+    matchConfidence: 0.88,
     caloriesKcal: 35,
     proteinG: 4,
     carbsG: 6,
@@ -43,6 +44,7 @@ const demoItems: GroceryItem[] = [
     productName: 'Oats',
     quantity: 1,
     unit: 'box',
+    matchConfidence: 0.84,
     caloriesKcal: 180,
     proteinG: 6,
     carbsG: 32,
@@ -66,6 +68,7 @@ type BatchRecord = {
     productName: string
     quantity: number
     unit: string | null
+    matchConfidence: number | null
     caloriesKcal: number | null
     proteinG: number | null
     carbsG: number | null
@@ -85,6 +88,7 @@ function toGroceryItem(item: BatchRecord['items'][number]): GroceryItem {
     productName: item.productName,
     quantity: item.quantity,
     unit: item.unit,
+    matchConfidence: item.matchConfidence,
     caloriesKcal: item.caloriesKcal,
     proteinG: item.proteinG,
     carbsG: item.carbsG,
@@ -114,6 +118,7 @@ function makeDemoItems(batchId: string) {
     productName: item.productName,
     quantity: item.quantity,
     unit: item.unit ?? null,
+    matchConfidence: item.matchConfidence ?? null,
     caloriesKcal: item.caloriesKcal ?? null,
     proteinG: item.proteinG ?? null,
     carbsG: item.carbsG ?? null,
@@ -187,6 +192,85 @@ function memorySetItemConsumed(
           }
         : item,
     ),
+  })
+}
+
+function memoryAddItem(
+  batchId: string,
+  input: { productName: string; quantity?: number; unit?: string | null },
+): GroceryBatch | null {
+  const batch = loadMemoryBatch(batchId)
+  if (!batch) return null
+
+  const quantity = Number.isFinite(input.quantity) && (input.quantity ?? 0) > 0 ? input.quantity ?? 1 : 1
+  const item: GroceryItem = {
+    id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    productName: input.productName,
+    quantity,
+    unit: input.unit?.trim() ? input.unit.trim() : 'item',
+    matchConfidence: null,
+    caloriesKcal: null,
+    proteinG: null,
+    carbsG: null,
+    fatG: null,
+    sodiumMg: null,
+    vitaminDMcg: null,
+    ironMg: null,
+    calciumMg: null,
+    consumed: false,
+    consumedAt: null,
+  }
+
+  return saveMemoryBatch({
+    ...batch,
+    items: [...batch.items, item],
+  })
+}
+
+function memoryUpdateItem(
+  batchId: string,
+  itemId: string,
+  patch: {
+    productName?: string
+    quantity?: number
+    unit?: string | null
+    consumed?: boolean
+  },
+): GroceryBatch | null {
+  const batch = loadMemoryBatch(batchId)
+  if (!batch) return null
+
+  return saveMemoryBatch({
+    ...batch,
+    items: batch.items.map((item) => {
+      if (item.id !== itemId) {
+        return item
+      }
+
+      const nextConsumed = patch.consumed ?? item.consumed ?? false
+      const parsedQuantity =
+        patch.quantity === undefined ? Number.NaN : Number.parseFloat(String(patch.quantity))
+      const nextQuantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : item.quantity
+
+      return {
+        ...item,
+        productName: patch.productName?.trim() ? patch.productName.trim() : item.productName,
+        quantity: nextQuantity,
+        unit: patch.unit === undefined ? item.unit : patch.unit,
+        consumed: nextConsumed,
+        consumedAt: nextConsumed ? item.consumedAt ?? new Date().toISOString() : null,
+      }
+    }),
+  })
+}
+
+function memoryRemoveItem(batchId: string, itemId: string): GroceryBatch | null {
+  const batch = loadMemoryBatch(batchId)
+  if (!batch) return null
+
+  return saveMemoryBatch({
+    ...batch,
+    items: batch.items.filter((item) => item.id !== itemId),
   })
 }
 
@@ -270,6 +354,7 @@ async function databaseCompleteBatch(
         productName: item.productName,
         quantity: item.quantity,
         unit: item.unit ?? null,
+        matchConfidence: item.matchConfidence ?? null,
         caloriesKcal: item.caloriesKcal ?? null,
         proteinG: item.proteinG ?? null,
         carbsG: item.carbsG ?? null,
@@ -319,6 +404,126 @@ async function databaseSetItemConsumed(
   return databaseGetBatch(ownerEmail, batchId)
 }
 
+async function databaseAddItem(
+  ownerEmail: string,
+  batchId: string,
+  input: { productName: string; quantity?: number; unit?: string | null },
+): Promise<GroceryBatch | null> {
+  const batch = await prisma.groceryBatch.findFirst({
+    where: {
+      id: batchId,
+      user: { email: ownerEmail },
+    },
+    select: { id: true },
+  })
+
+  if (!batch) {
+    return null
+  }
+
+  await prisma.groceryItem.create({
+    data: {
+      batchId,
+      productName: input.productName,
+      quantity: Number.isFinite(input.quantity) && (input.quantity ?? 0) > 0 ? input.quantity ?? 1 : 1,
+      unit: input.unit?.trim() ? input.unit.trim() : 'item',
+      matchConfidence: null,
+    },
+  })
+
+  return databaseGetBatch(ownerEmail, batchId)
+}
+
+async function databaseUpdateItem(
+  ownerEmail: string,
+  batchId: string,
+  itemId: string,
+  patch: {
+    productName?: string
+    quantity?: number
+    unit?: string | null
+    consumed?: boolean
+  },
+): Promise<GroceryBatch | null> {
+  const item = await prisma.groceryItem.findFirst({
+    where: {
+      id: itemId,
+      batchId,
+      batch: {
+        user: { email: ownerEmail },
+      },
+    },
+    select: {
+      id: true,
+      consumed: true,
+      consumedAt: true,
+    },
+  })
+
+  if (!item) {
+    return null
+  }
+
+  const data: {
+    productName?: string
+    quantity?: number
+    unit?: string | null
+    consumed?: boolean
+    consumedAt?: Date | null
+  } = {}
+
+  if (patch.productName?.trim()) {
+    data.productName = patch.productName.trim()
+  }
+
+  if (Number.isFinite(patch.quantity) && (patch.quantity ?? 0) > 0) {
+    data.quantity = patch.quantity
+  }
+
+  if (patch.unit !== undefined) {
+    data.unit = patch.unit
+  }
+
+  if (patch.consumed !== undefined) {
+    data.consumed = patch.consumed
+    data.consumedAt = patch.consumed ? item.consumedAt ?? new Date() : null
+  }
+
+  await prisma.groceryItem.update({
+    where: { id: itemId },
+    data,
+  })
+
+  return databaseGetBatch(ownerEmail, batchId)
+}
+
+async function databaseRemoveItem(
+  ownerEmail: string,
+  batchId: string,
+  itemId: string,
+): Promise<GroceryBatch | null> {
+  const item = await prisma.groceryItem.findFirst({
+    where: {
+      id: itemId,
+      batchId,
+      batch: {
+        user: { email: ownerEmail },
+      },
+    },
+    select: { id: true },
+  })
+
+  if (!item) {
+    return null
+  }
+
+  await prisma.groceryItem.delete({
+    where: { id: itemId },
+  })
+
+  return databaseGetBatch(ownerEmail, batchId)
+}
+
 function shouldUseDatabase(): boolean {
   return !databaseUnavailable
 }
@@ -357,20 +562,6 @@ export async function completeBatch(
   }
 
   return memoryCompleteBatch(batchId, items, storeName)
-}
-
-export function scheduleBatchCompletion(ownerEmail: string, batchId: string, delayMs = 1500): void {
-  const existingTimer = completionTimers.get(batchId)
-  if (existingTimer) {
-    clearTimeout(existingTimer)
-  }
-
-  const timer = setTimeout(() => {
-    void completeBatch(ownerEmail, batchId)
-    completionTimers.delete(batchId)
-  }, delayMs)
-
-  completionTimers.set(batchId, timer)
 }
 
 export async function getBatch(ownerEmail: string, batchId: string): Promise<GroceryBatch | null> {
@@ -412,4 +603,103 @@ export async function setItemConsumed(
   }
 
   return memorySetItemConsumed(batchId, itemId, consumed)
+}
+
+export async function addBatchItem(
+  ownerEmail: string,
+  batchId: string,
+  input: { productName: string; quantity?: number; unit?: string | null },
+): Promise<GroceryBatch | null> {
+  if (shouldUseDatabase()) {
+    try {
+      return await databaseAddItem(ownerEmail, batchId, input)
+    } catch {
+      disableDatabaseFallback()
+    }
+  }
+
+  return memoryAddItem(batchId, input)
+}
+
+export async function updateBatchItem(
+  ownerEmail: string,
+  batchId: string,
+  itemId: string,
+  patch: {
+    productName?: string
+    quantity?: number
+    unit?: string | null
+    consumed?: boolean
+  },
+): Promise<GroceryBatch | null> {
+  if (shouldUseDatabase()) {
+    try {
+      return await databaseUpdateItem(ownerEmail, batchId, itemId, patch)
+    } catch {
+      disableDatabaseFallback()
+    }
+  }
+
+  return memoryUpdateItem(batchId, itemId, patch)
+}
+
+export async function removeBatchItem(
+  ownerEmail: string,
+  batchId: string,
+  itemId: string,
+): Promise<GroceryBatch | null> {
+  if (shouldUseDatabase()) {
+    try {
+      return await databaseRemoveItem(ownerEmail, batchId, itemId)
+    } catch {
+      disableDatabaseFallback()
+    }
+  }
+
+  return memoryRemoveItem(batchId, itemId)
+}
+
+export async function markBatchFailed(
+  ownerEmail: string,
+  batchId: string,
+  reason?: string,
+): Promise<GroceryBatch | null> {
+  if (shouldUseDatabase()) {
+    try {
+      const batch = await prisma.groceryBatch.findFirst({
+        where: {
+          id: batchId,
+          user: { email: ownerEmail },
+        },
+        select: { id: true },
+      })
+
+      if (!batch) {
+        return null
+      }
+
+      await prisma.groceryBatch.update({
+        where: { id: batchId },
+        data: {
+          ocrStatus: 'failed',
+          storeName: reason ? `Processing failed: ${reason.slice(0, 80)}` : undefined,
+        },
+      })
+
+      return await databaseGetBatch(ownerEmail, batchId)
+    } catch {
+      disableDatabaseFallback()
+    }
+  }
+
+  const memoryBatch = loadMemoryBatch(batchId)
+  if (!memoryBatch) {
+    return null
+  }
+
+  return saveMemoryBatch({
+    ...memoryBatch,
+    ocrStatus: 'failed',
+    storeName: reason ? `Processing failed: ${reason.slice(0, 80)}` : memoryBatch.storeName,
+  })
 }

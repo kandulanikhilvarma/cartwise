@@ -145,12 +145,14 @@ function buildItems(lines: string[]): GroceryItem[] {
     seen.add(normalizedKey)
     const quantity = extractQuantity(line)
     const profile = pickProfile(productName)
+    const confidence = Math.max(0.5, Math.min(0.98, 0.56 + Math.min(productName.length, 22) * 0.015))
 
     items.push({
       id: `item-${Date.now()}-${items.length}`,
       productName,
       quantity,
       unit: profile.unit ?? 'item',
+      matchConfidence: Number(confidence.toFixed(2)),
       caloriesKcal: profile.caloriesKcal,
       proteinG: profile.proteinG,
       carbsG: profile.carbsG,

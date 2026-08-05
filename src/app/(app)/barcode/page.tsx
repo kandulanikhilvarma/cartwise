@@ -5,10 +5,9 @@ export default function BarcodePage() {
     <main className="surface-page">
       <section className="surface-card">
         <p className="eyebrow">Barcode</p>
-        <h1>Fallback add-by-code route.</h1>
+        <h1>Add missed items in seconds.</h1>
         <p className="lede">
-          Barcode scanning will be a secondary entry path when a receipt misses a product or the
-          user wants to add a single item directly.
+          Use barcode lookup as a fast correction path when receipt OCR misses a product.
         </p>
       </section>
 

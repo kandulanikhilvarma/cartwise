@@ -13,7 +13,7 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: 'NutriLens',
+  title: 'Cartwise',
   description: 'Snap your receipt. Know what you bought. Know what it does.',
 }
 

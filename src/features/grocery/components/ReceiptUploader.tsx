@@ -71,10 +71,10 @@ export function ReceiptUploader() {
       <form className="upload-card" action={handleSubmit}>
         <div className="upload-visual">
           <p className="eyebrow">Receipt first</p>
-          <h2>Upload a grocery receipt to start.</h2>
+          <h2>Start with your latest grocery receipt.</h2>
           <p>
-            The first implementation slice keeps the capture entry simple. Camera capture will be
-            added next; this version already exercises the upload and result flow.
+            Processing runs automatically after upload. You only edit entries if something was
+            matched incorrectly.
           </p>
         </div>
 
@@ -91,7 +91,7 @@ export function ReceiptUploader() {
 
         <div className="cta-row">
           <button className="button button-primary" disabled={isUploading} type="submit">
-            {isUploading ? 'Processing...' : 'Upload receipt'}
+            {isUploading ? 'Processing receipt...' : 'Process receipt'}
           </button>
           <Link className="button button-secondary" href="/login">
             Save later
@@ -110,6 +110,11 @@ export function ReceiptUploader() {
             OCR status: {batch.ocrStatus}
             {pendingBatchId ? ' - processing in background' : ''}
           </p>
+          {batch.ocrStatus === 'failed' ? (
+            <p className="error-text">
+              Receipt processing failed. Try a clearer image or use barcode fallback for manual recovery.
+            </p>
+          ) : null}
 
           <div className="result-items">
             {previewItems.map((item) => (
@@ -118,6 +123,11 @@ export function ReceiptUploader() {
                 <p>
                   {item.quantity} {item.unit ?? 'item'}
                 </p>
+                {typeof item.matchConfidence === 'number' ? (
+                  <p className="fine-print">
+                    OCR confidence: {Math.round(item.matchConfidence * 100)}%
+                  </p>
+                ) : null}
               </article>
             ))}
           </div>

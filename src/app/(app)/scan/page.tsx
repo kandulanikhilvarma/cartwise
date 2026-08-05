@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { ReceiptUploader } from '@/features/grocery/components/ReceiptUploader'
 
 const flow = [
-  'Upload a receipt or capture it on mobile',
-  'Match grocery items automatically',
-  'Review a clean summary before saving',
+  'Capture your grocery receipt',
+  'Auto-match line items without manual review steps',
+  'Get three nutrition signals and edit only if needed',
 ]
 
 export default function ScanPage() {
@@ -12,10 +12,10 @@ export default function ScanPage() {
     <main className="surface-page">
       <section className="surface-card">
         <p className="eyebrow">Capture flow</p>
-        <h1>Show what the product does before asking for more effort.</h1>
+        <h1>Receipt first. Value in one pass.</h1>
         <p className="lede">
-          Start with the value story, then try the receipt flow below. This keeps the first touch
-          calm while still proving the app can turn a grocery receipt into useful nutrition output.
+          The scan route is the core habit loop. Drop a receipt, let processing run, and review the
+          nutrition output with lightweight corrections.
         </p>
         <div className="flow-list">
           {flow.map((item, index) => (

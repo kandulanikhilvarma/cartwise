@@ -3,6 +3,7 @@ export type GroceryItem = {
   productName: string
   quantity: number
   unit?: string | null
+  matchConfidence?: number | null
   caloriesKcal?: number | null
   proteinG?: number | null
   carbsG?: number | null

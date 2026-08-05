@@ -11,6 +11,7 @@ Keep a short, readable record of what changed, why it changed, and how to reprod
 - Receipt processing now has a `processing` state and polling endpoint.
 - Batch list and batch detail read from the same store and are scoped to the signed-in user.
 - Grocery items can be marked consumed and the batch UI shows that state.
+- Grocery items now support add, edit, and remove actions from the batch detail UI.
 - Barcode lookup now uses Open Food Facts with a local fallback cache.
 - Google sign-in route and session chip are wired.
 - Protected app routes and sign-out are wired.
@@ -104,6 +105,23 @@ Keep a short, readable record of what changed, why it changed, and how to reprod
 - Finalized receipt batches with OCR-derived items instead of demo items.
 - Kept polling and batch detail behavior unchanged.
 - Verified the build still passes.
+
+### 2026-08-05 - Grocery item correction loop
+- Added `GET /api/grocery` for listing signed-in user's batches.
+- Added `POST /api/grocery/[batchId]/items` for manual item add.
+- Extended `PATCH /api/grocery/[batchId]/items/[itemId]` to support name, quantity, unit, and consumed updates.
+- Added `DELETE /api/grocery/[batchId]/items/[itemId]` for item removal.
+- Updated shared batch store with add/update/remove operations for both Prisma and memory fallback modes.
+- Updated the batch detail item list UI with add, inline edit, and remove controls.
+- Refined scan, barcode, and receipt copy and refreshed visual tokens to a cleaner, less templated style.
+- Verified with `npm run build` (passes).
+
+### 2026-08-05 - Homepage clarity rewrite
+- Reworked the homepage hero to clearly state product value, audience, and first action.
+- Replaced vague marketing copy with outcome-driven messaging aligned to PRD v2 (receipt-first loop, 3 insights, lightweight corrections).
+- Added a trust and product-boundaries section to clarify auth, OCR behavior, and barcode fallback.
+- Tuned homepage styles for stronger hierarchy and mobile readability.
+- Verified with `npm run build` (passes).
 
 ## How to Extend
 - Add one small change at a time.

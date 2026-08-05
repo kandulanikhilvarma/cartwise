@@ -20,7 +20,7 @@ export default async function AppLayout({
     <div className="app-shell">
       <header className="app-header">
         <Link className="brand" href="/">
-          NutriLens
+          Cartwise
         </Link>
         <div className="auth-chip">
           {session?.user?.email ?? 'Guest'}
