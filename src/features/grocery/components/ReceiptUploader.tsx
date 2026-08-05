@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { GroceryBatch } from '@/features/grocery/types'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
@@ -10,8 +10,11 @@ type Stage = 'idle' | 'reading' | 'matching'
 
 export function ReceiptUploader() {
   const router = useRouter()
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
   const [stage, setStage] = useState<Stage>('idle')
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -21,9 +24,29 @@ export function ReceiptUploader() {
   const items = batch?.items ?? []
   const matchedCount = items.filter((item) => item.matchConfidence != null).length
 
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+
+  function chooseFile(next: File | null) {
+    if (next && !next.type.startsWith('image/')) {
+      setError('That file isn’t an image. Use a photo of your receipt.')
+      return
+    }
+    setError(null)
+    setBatch(null)
+    setFile(next)
+  }
+
   async function handleProcess() {
     if (!file) {
-      setError('Choose a receipt image first.')
+      setError('Choose or take a photo of your receipt first.')
       return
     }
 
@@ -34,8 +57,11 @@ export function ReceiptUploader() {
 
     try {
       const lines = await ocrReceiptToLines(file, setProgress)
-      setStage('matching')
+      if (lines.join('').trim().length === 0) {
+        throw new Error('Couldn’t read any text. Try a sharper, well-lit photo of the whole receipt.')
+      }
 
+      setStage('matching')
       const response = await fetch('/api/grocery/receipt', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -44,7 +70,7 @@ export function ReceiptUploader() {
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { message?: string } | null
-        throw new Error(payload?.message ?? 'Receipt processing failed')
+        throw new Error(payload?.message ?? `Processing failed (${response.status}).`)
       }
 
       setBatch((await response.json()) as GroceryBatch)
@@ -60,37 +86,89 @@ export function ReceiptUploader() {
     <div className="receipt-uploader">
       <div className="upload-card">
         <div className="upload-visual">
-          <h2>Upload your receipt</h2>
+          <h2>Add a receipt</h2>
           <p>Read on your device — only the text is sent, never the photo.</p>
         </div>
 
-        <label className="upload-field">
-          <span>Receipt image</span>
-          <input
-            ref={fileInputRef}
-            accept="image/*"
-            capture="environment"
-            type="file"
-            disabled={isBusy}
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null)
-              setError(null)
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={(event) => chooseFile(event.target.files?.[0] ?? null)}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(event) => chooseFile(event.target.files?.[0] ?? null)}
+        />
+
+        {file && previewUrl ? (
+          <div className="upload-preview">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewUrl} alt="Selected receipt preview" />
+            <div className="upload-preview-meta">
+              <strong>{file.name}</strong>
+              <button
+                className="button button-secondary"
+                type="button"
+                disabled={isBusy}
+                onClick={() => setFile(null)}
+              >
+                Change
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={`upload-drop${dragging ? ' is-dragging' : ''}`}
+            onDragOver={(event) => {
+              event.preventDefault()
+              setDragging(true)
             }}
-          />
-        </label>
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault()
+              setDragging(false)
+              chooseFile(event.dataTransfer.files?.[0] ?? null)
+            }}
+          >
+            <p className="upload-drop-hint">Drag a photo here, or</p>
+            <div className="upload-drop-actions">
+              <button className="button button-primary" type="button" onClick={() => cameraInputRef.current?.click()}>
+                Take photo
+              </button>
+              <button className="button button-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
+                Upload image
+              </button>
+            </div>
+          </div>
+        )}
 
-        <div className="cta-row">
-          <button className="button button-primary" disabled={isBusy || !file} type="button" onClick={handleProcess}>
-            {stage === 'reading'
-              ? `Reading receipt… ${Math.round(progress * 100)}%`
-              : stage === 'matching'
-                ? 'Matching nutrition…'
-                : 'Process receipt'}
-          </button>
-        </div>
+        <button
+          className="button button-primary upload-process"
+          disabled={isBusy || !file}
+          type="button"
+          onClick={handleProcess}
+        >
+          {stage === 'reading'
+            ? `Reading receipt… ${Math.round(progress * 100)}%`
+            : stage === 'matching'
+              ? 'Matching nutrition…'
+              : 'Process receipt'}
+        </button>
 
-        <p aria-live="polite" className="fine-print">
-          {file ? `Selected file: ${file.name}` : 'No file selected yet.'}
+        <p aria-live="polite" className="sr-status fine-print">
+          {isBusy
+            ? stage === 'reading'
+              ? 'Reading the receipt on your device.'
+              : 'Matching items to nutrition data.'
+            : file
+              ? 'Ready to process.'
+              : 'No receipt selected yet.'}
         </p>
         {error ? (
           <p aria-live="assertive" className="error-text">
@@ -101,7 +179,6 @@ export function ReceiptUploader() {
 
       {batch ? (
         <section className="result-card" aria-live="polite">
-          <p className="eyebrow">Batch ready</p>
           <h2>{batch.storeName ?? 'Your grocery batch'}</h2>
           <p className="fine-print">
             {matchedCount} of {items.length} items matched to nutrition data.
@@ -109,8 +186,8 @@ export function ReceiptUploader() {
 
           {items.length === 0 ? (
             <p className="error-text">
-              No items could be read from this receipt. Try a clearer, well-lit photo, or add items with the
-              barcode scanner.
+              No items could be read from this receipt. Try a clearer, well-lit photo of the whole receipt, or
+              add items with the barcode scanner.
             </p>
           ) : (
             <>
@@ -124,7 +201,7 @@ export function ReceiptUploader() {
                     {item.matchConfidence != null ? (
                       <p className="fine-print">Match confidence: {Math.round(item.matchConfidence * 100)}%</p>
                     ) : (
-                      <p className="fine-print">No nutrition match — edit the name to retry.</p>
+                      <p className="fine-print">No nutrition match — open the batch to fix the name.</p>
                     )}
                   </article>
                 ))}

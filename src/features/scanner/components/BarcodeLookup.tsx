@@ -49,12 +49,7 @@ export function BarcodeLookup() {
 
   return (
     <section className="surface-card">
-      <div className="section-header">
-        <p className="eyebrow">Barcode lookup</p>
-        <h2>Fallback when a receipt misses a product.</h2>
-      </div>
-
-      <div className="upload-card" style={{ padding: 0, background: 'transparent', boxShadow: 'none', border: 'none' }}>
+      <div className="barcode-form">
         <label className="upload-field">
           <span>Barcode number</span>
           <input
@@ -62,11 +57,14 @@ export function BarcodeLookup() {
             placeholder="0123456789012"
             value={code}
             onChange={(event) => setCode(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') handleLookup()
+            }}
           />
         </label>
 
-        <button className="button button-primary" onClick={handleLookup} type="button">
-          {isLoading ? 'Looking up...' : 'Lookup barcode'}
+        <button className="button button-primary" onClick={handleLookup} type="button" disabled={isLoading}>
+          {isLoading ? 'Looking up…' : 'Look up barcode'}
         </button>
 
         {error ? <p className="error-text">{error}</p> : null}
@@ -77,30 +75,27 @@ export function BarcodeLookup() {
           <p className="eyebrow">Product found</p>
           <h2>{product.productName}</h2>
           <p className="fine-print">{product.brand ?? 'No brand listed'}</p>
+          <p className="fine-print">Values are per 100 g.</p>
           <div className="nutrition-grid">
             <article className="nutrition-card tone-good">
-              <strong>Calories</strong>
-              <p>{product.caloriesKcal} kcal</p>
+              <strong>{product.caloriesKcal}</strong>
+              <span>Calories (kcal)</span>
             </article>
             <article className="nutrition-card tone-neutral">
-              <strong>Protein</strong>
-              <p>{product.proteinG} g</p>
+              <strong>{product.proteinG}</strong>
+              <span>Protein (g)</span>
             </article>
             <article className="nutrition-card tone-neutral">
-              <strong>Carbs</strong>
-              <p>{product.carbsG} g</p>
+              <strong>{product.carbsG}</strong>
+              <span>Carbs (g)</span>
             </article>
             <article className="nutrition-card tone-neutral">
-              <strong>Fat</strong>
-              <p>{product.fatG} g</p>
+              <strong>{product.fatG}</strong>
+              <span>Fat (g)</span>
             </article>
             <article className="nutrition-card tone-warning">
-              <strong>Sodium</strong>
-              <p>{product.sodiumMg} mg</p>
-            </article>
-            <article className="nutrition-card tone-neutral">
-              <strong>Code</strong>
-              <p>{product.code}</p>
+              <strong>{product.sodiumMg}</strong>
+              <span>Sodium (mg)</span>
             </article>
           </div>
         </section>
