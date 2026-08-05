@@ -1,138 +1,139 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { GroceryBatch } from '@/features/grocery/types'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
+import { ocrReceiptToLines } from '@/features/grocery/lib/client-ocr'
+
+type Stage = 'idle' | 'reading' | 'matching'
 
 export function ReceiptUploader() {
   const router = useRouter()
-  const [fileName, setFileName] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [stage, setStage] = useState<Stage>('idle')
+  const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [batch, setBatch] = useState<GroceryBatch | null>(null)
-  const [pendingBatchId, setPendingBatchId] = useState<string | null>(null)
 
-  const previewItems = useMemo(() => batch?.items ?? [], [batch])
+  const isBusy = stage !== 'idle'
+  const items = batch?.items ?? []
+  const matchedCount = items.filter((item) => item.matchConfidence != null).length
 
-  useEffect(() => {
-    if (!pendingBatchId) return
+  async function handleProcess() {
+    if (!file) {
+      setError('Choose a receipt image first.')
+      return
+    }
 
-    const intervalId = window.setInterval(async () => {
-      const response = await fetch(`/api/grocery/receipt/${pendingBatchId}`, {
-        cache: 'no-store',
-      })
-
-      if (!response.ok) {
-        return
-      }
-
-      const data = (await response.json()) as GroceryBatch
-      setBatch(data)
-
-      if (data.ocrStatus === 'done' || data.ocrStatus === 'failed') {
-        setPendingBatchId(null)
-        window.clearInterval(intervalId)
-        router.refresh()
-      }
-    }, 1200)
-
-    return () => window.clearInterval(intervalId)
-  }, [pendingBatchId, router])
-
-  async function handleSubmit(formData: FormData) {
-    setIsUploading(true)
     setError(null)
+    setBatch(null)
+    setStage('reading')
+    setProgress(0)
 
     try {
+      const lines = await ocrReceiptToLines(file, setProgress)
+      setStage('matching')
+
       const response = await fetch('/api/grocery/receipt', {
         method: 'POST',
-        body: formData,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ lines, fileName: file.name }),
       })
 
       if (!response.ok) {
-        throw new Error('Receipt upload failed')
+        const payload = (await response.json().catch(() => null)) as { message?: string } | null
+        throw new Error(payload?.message ?? 'Receipt processing failed')
       }
 
-      const data = (await response.json()) as GroceryBatch
-      setBatch(data)
-      setPendingBatchId(data.id)
+      setBatch((await response.json()) as GroceryBatch)
       router.refresh()
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Upload failed')
+      setError(requestError instanceof Error ? requestError.message : 'Processing failed')
     } finally {
-      setIsUploading(false)
+      setStage('idle')
     }
   }
 
   return (
     <div className="receipt-uploader">
-      <form className="upload-card" action={handleSubmit}>
+      <div className="upload-card">
         <div className="upload-visual">
           <p className="eyebrow">Receipt first</p>
           <h2>Start with your latest grocery receipt.</h2>
-          <p>
-            Processing runs automatically after upload. You only edit entries if something was
-            matched incorrectly.
-          </p>
+          <p>Text is read on your device, then matched to real nutrition data. Nothing is uploaded but the text.</p>
         </div>
 
         <label className="upload-field">
           <span>Receipt image</span>
           <input
+            ref={fileInputRef}
             accept="image/*"
             capture="environment"
-            name="receipt"
             type="file"
-            onChange={(event) => setFileName(event.target.files?.[0]?.name ?? null)}
+            disabled={isBusy}
+            onChange={(event) => {
+              setFile(event.target.files?.[0] ?? null)
+              setError(null)
+            }}
           />
         </label>
 
         <div className="cta-row">
-          <button className="button button-primary" disabled={isUploading} type="submit">
-            {isUploading ? 'Processing receipt...' : 'Process receipt'}
+          <button className="button button-primary" disabled={isBusy || !file} type="button" onClick={handleProcess}>
+            {stage === 'reading'
+              ? `Reading receipt… ${Math.round(progress * 100)}%`
+              : stage === 'matching'
+                ? 'Matching nutrition…'
+                : 'Process receipt'}
           </button>
-          <Link className="button button-secondary" href="/login">
-            Save later
-          </Link>
         </div>
 
-        {fileName ? <p className="fine-print">Selected file: {fileName}</p> : null}
-        {error ? <p className="error-text">{error}</p> : null}
-      </form>
+        <p aria-live="polite" className="fine-print">
+          {file ? `Selected file: ${file.name}` : 'No file selected yet.'}
+        </p>
+        {error ? (
+          <p aria-live="assertive" className="error-text">
+            {error}
+          </p>
+        ) : null}
+      </div>
 
       {batch ? (
-        <section className="result-card">
+        <section className="result-card" aria-live="polite">
           <p className="eyebrow">Batch ready</p>
           <h2>{batch.storeName ?? 'Your grocery batch'}</h2>
           <p className="fine-print">
-            OCR status: {batch.ocrStatus}
-            {pendingBatchId ? ' - processing in background' : ''}
+            {matchedCount} of {items.length} items matched to nutrition data.
           </p>
-          {batch.ocrStatus === 'failed' ? (
+
+          {items.length === 0 ? (
             <p className="error-text">
-              Receipt processing failed. Try a clearer image or use barcode fallback for manual recovery.
+              No items could be read from this receipt. Try a clearer, well-lit photo, or add items with the
+              barcode scanner.
             </p>
-          ) : null}
+          ) : (
+            <>
+              <div className="result-items">
+                {items.map((item) => (
+                  <article className="result-item" key={item.id}>
+                    <strong>{item.productName}</strong>
+                    <p>
+                      {item.quantity} {item.unit ?? 'item'}
+                    </p>
+                    {item.matchConfidence != null ? (
+                      <p className="fine-print">Match confidence: {Math.round(item.matchConfidence * 100)}%</p>
+                    ) : (
+                      <p className="fine-print">No nutrition match — edit the name to retry.</p>
+                    )}
+                  </article>
+                ))}
+              </div>
 
-          <div className="result-items">
-            {previewItems.map((item) => (
-              <article className="result-item" key={item.id}>
-                <strong>{item.productName}</strong>
-                <p>
-                  {item.quantity} {item.unit ?? 'item'}
-                </p>
-                {typeof item.matchConfidence === 'number' ? (
-                  <p className="fine-print">
-                    OCR confidence: {Math.round(item.matchConfidence * 100)}%
-                  </p>
-                ) : null}
-              </article>
-            ))}
-          </div>
-
-          <NutritionSummary items={previewItems} />
+              <NutritionSummary items={items} />
+            </>
+          )}
         </section>
       ) : null}
     </div>

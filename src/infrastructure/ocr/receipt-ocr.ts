@@ -1,4 +1,3 @@
-import { recognize } from 'tesseract.js'
 import type { GroceryItem } from '@/features/grocery/types'
 import { lookupNutrition } from '@/infrastructure/services/food-lookup'
 import { cleanLine, deriveProductName, deriveStoreName, extractQuantity, isNoiseLine } from './receipt-parse'
@@ -58,14 +57,14 @@ async function buildItems(lines: string[]): Promise<GroceryItem[]> {
   return items
 }
 
-export async function extractReceiptItems(file: File): Promise<ReceiptParseResult> {
-  const image = Buffer.from(await file.arrayBuffer())
-  const result = await recognize(image, 'eng')
-  const lines = result.data.text.split(/\r?\n/)
-  const items = await buildItems(lines)
-
+/**
+ * Parse raw OCR text lines (produced client-side by Tesseract) into grocery
+ * items with real nutrition. OCR itself runs in the browser so this stays a
+ * fast, serverless-safe request with no background job.
+ */
+export async function parseReceiptLines(lines: string[]): Promise<ReceiptParseResult> {
   return {
     storeName: deriveStoreName(lines),
-    items,
+    items: await buildItems(lines),
   }
 }

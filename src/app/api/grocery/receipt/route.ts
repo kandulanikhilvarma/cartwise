@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { createProcessingBatch } from '@/infrastructure/state/batch-store'
+import { completeBatch, createProcessingBatch } from '@/infrastructure/state/batch-store'
+import { parseReceiptLines } from '@/infrastructure/ocr/receipt-ocr'
 import { consumeRateLimit, requestClientKey } from '@/infrastructure/cache/rate-limit'
-import { enqueueReceiptProcessing } from '@/infrastructure/ocr/receipt-processor'
+import { parseJsonBody } from '@/shared/lib/http'
+
+const MAX_LINES = 200
 
 export async function POST(request: Request) {
   const clientKey = requestClientKey(request)
@@ -15,35 +18,25 @@ export async function POST(request: Request) {
 
   const session = await auth()
   const ownerEmail = session?.user?.email
-
   if (!ownerEmail) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
-  let formData: FormData
-  try {
-    formData = await request.formData()
-  } catch {
-    return NextResponse.json({ message: 'Invalid form data' }, { status: 400 })
+  const body = await parseJsonBody<{ lines?: unknown; fileName?: unknown }>(request)
+  if (!body || !Array.isArray(body.lines)) {
+    return NextResponse.json({ message: 'Receipt text lines are required' }, { status: 400 })
   }
 
-  const receipt = formData.get('receipt')
-  if (!(receipt instanceof File)) {
-    return NextResponse.json({ message: 'Receipt image is required' }, { status: 400 })
+  const lines = body.lines.filter((line): line is string => typeof line === 'string').slice(0, MAX_LINES)
+  if (lines.length === 0) {
+    return NextResponse.json({ message: 'No readable text found on the receipt' }, { status: 400 })
   }
 
-  if (!receipt.type.startsWith('image/')) {
-    return NextResponse.json({ message: 'Only image files are supported' }, { status: 400 })
-  }
+  const fileName = typeof body.fileName === 'string' && body.fileName.trim() ? body.fileName.trim() : 'receipt'
 
-  const maxSizeBytes = 10 * 1024 * 1024
-  if (receipt.size > maxSizeBytes) {
-    return NextResponse.json({ message: 'Receipt image must be 10MB or smaller' }, { status: 400 })
-  }
-
-  const fileName = receipt.name || 'receipt'
+  const parsed = await parseReceiptLines(lines)
   const batch = await createProcessingBatch(ownerEmail, fileName)
-  enqueueReceiptProcessing(ownerEmail, batch.id, receipt)
+  const completed = await completeBatch(ownerEmail, batch.id, parsed.items, parsed.storeName ?? fileName)
 
-  return NextResponse.json(batch)
+  return NextResponse.json(completed ?? batch)
 }
