@@ -1,6 +1,15 @@
 import type { GroceryItem } from '@/features/grocery/types'
 import { lookupNutrition } from '@/infrastructure/services/food-lookup'
-import { cleanLine, deriveProductName, deriveStoreName, extractQuantity, isNoiseLine } from './receipt-parse'
+import {
+  cleanLine,
+  deriveProductName,
+  deriveStoreName,
+  extractQuantity,
+  hasRealName,
+  isNoiseLine,
+  looksLikeReceipt,
+  toTitleCase,
+} from './receipt-parse'
 
 type ReceiptParseResult = {
   storeName: string | null
@@ -23,7 +32,12 @@ async function buildItems(lines: string[]): Promise<GroceryItem[]> {
       continue
     }
 
-    const productName = deriveProductName(line)
+    const rawName = deriveProductName(line)
+    if (!hasRealName(rawName)) {
+      // Line was only codes/prices, not a nameable product — skip it.
+      continue
+    }
+    const productName = toTitleCase(rawName)
     const normalizedKey = productName.toLowerCase()
     if (seen.has(normalizedKey)) {
       continue
