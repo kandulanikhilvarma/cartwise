@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { completeBatch, createProcessingBatch } from '@/infrastructure/state/batch-store'
 import { parseReceiptLines } from '@/infrastructure/ocr/receipt-ocr'
+import { looksLikeReceipt } from '@/infrastructure/ocr/receipt-parse'
 import { consumeRateLimit, requestClientKey } from '@/infrastructure/cache/rate-limit'
 import { parseJsonBody } from '@/shared/lib/http'
 
@@ -30,6 +31,13 @@ export async function POST(request: Request) {
   const lines = body.lines.filter((line): line is string => typeof line === 'string').slice(0, MAX_LINES)
   if (lines.length === 0) {
     return NextResponse.json({ message: 'No readable text found on the receipt' }, { status: 400 })
+  }
+
+  if (!looksLikeReceipt(lines)) {
+    return NextResponse.json(
+      { message: 'This doesn’t look like a grocery receipt or bill. Upload a receipt, or add a product by barcode.' },
+      { status: 422 },
+    )
   }
 
   const fileName = typeof body.fileName === 'string' && body.fileName.trim() ? body.fileName.trim() : 'receipt'
