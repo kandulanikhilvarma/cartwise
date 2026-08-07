@@ -1,104 +1,142 @@
-# Cartwise
+<p align="center">
+  <img src="public/images/hero-produce.jpg" alt="Cartwise — a wall of fresh grocery produce" width="100%" />
+</p>
 
-Cartwise is a receipt-first grocery nutrition app: snap a grocery receipt, get a matched grocery batch with real nutrition data and a simple summary.
+<h1 align="center">🛒 Cartwise</h1>
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white) [![License](https://img.shields.io/badge/License-Apache%202.0-green)](LICENSE)
+<p align="center">
+  <strong>Snap your grocery receipt. Know what you bought.</strong><br/>
+  One receipt in, real nutrition out — no daily food diary, no logging every meal.
+</p>
 
-## Current focus
-- Public value-first landing page
-- Receipt OCR upload flow
-- Grocery batch pages
-- Barcode fallback
-- Simple nutrition summary
-- Google OAuth flow wired in repo
+<p align="center">
+  <a href="https://cartwise-nine.vercel.app"><strong>Live demo →</strong></a>
+</p>
 
-## Status
-- Next.js 15 scaffold is in place
-- Route groups exist for app and auth surfaces
-- Receipt OCR flow is wired
-- Barcode lookup uses Open Food Facts with a cached fallback
-- Google sign-in route is wired
-- Prisma schema is present
-- Build currently passes
-
-## Env
-Copy `.env.example` to `.env.local` and fill in:
-- `DATABASE_URL` — Neon Postgres (pooled)
-- `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-- `GITHUB_ID`, `GITHUB_SECRET` — optional
-- `USDA_FDC_API_KEY` — free key for nutrition lookup
-
-## Structure
-- `src/app/` - routes and pages
-- `src/features/` - domain features
-- `src/shared/` - shared UI, config, and helpers
-- `src/infrastructure/` - db, cache, and services
-- `prisma/` - schema and migrations
-- `docs/` - specs and notes
-
-## Architecture
-
-```mermaid
-flowchart TB
-    subgraph app["App Router — src/app"]
-      SC["(app)/scan"]
-      GR["(app)/grocery"]
-      BC["(app)/barcode"]
-      AU["(auth)/login"]
-    end
-    subgraph api["Route handlers — app/api"]
-      RR["grocery/receipt"]
-      GB["grocery/[batchId]"]
-      FB["food-db/barcode/[code]"]
-    end
-    subgraph feat["Domain features — src/features"]
-      FS["scanner"]
-      FG["grocery"]
-      FN["nutrition<br/>batch-insights · RDA"]
-    end
-    subgraph infra["src/infrastructure"]
-      DB["db → Prisma"]
-      CA["cache"]
-      ST["state store"]
-    end
-    SC --> RR --> FG
-    GR --> GB --> FG
-    BC --> FB --> FS
-    FG --> FN
-    FG --> DB
-    FB --> CA
-    FN --> ST
-    DB --> PG[("Database")]
-```
-
-- **App Router** — a receipt-first flow across the `scan`, `grocery`, and `barcode` route groups, with an auth group for Google sign-in.
-- **Route handlers** — receipt upload, grocery-batch CRUD, and barcode lookups under `app/api`.
-- **Features** — domain logic in `scanner`, `grocery`, and `nutrition` (RDA constants + batch insights).
-- **Infrastructure** — Prisma-backed persistence, a cache layer, and client state.
-
-## Run
-```bash
-npm install
-npm run dev
-npm run build
-```
-
-## Working rules
-- Use `ponytail` by default for implementation work
-- Keep code minimal and avoid extra abstractions
-- When asked for a review, switch to code-review mode
-- In review mode, focus on bugs, regressions, and missing tests
-
-## Source of truth
-- `PRD_NutriLens_v2.md`
-- `TRD_NutriLens_v2.md`
-- `ADR_002_receipt_entry_point.md`
-
-## License
-
-Released under the Apache License 2.0 — see [LICENSE](LICENSE).
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15-000?logo=next.js" alt="Next.js 15" />
+  <img src="https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Prisma-Postgres-2D3748?logo=prisma&logoColor=white" alt="Prisma + Postgres" />
+  <img src="https://img.shields.io/badge/Auth.js-v5-000?logo=auth0&logoColor=white" alt="Auth.js v5" />
+  <img src="https://img.shields.io/badge/License-Apache_2.0-2ea44f" alt="License Apache 2.0" />
+</p>
 
 ---
 
-Built by **Nikhilvarma Kandula** · [LinkedIn](https://www.linkedin.com/in/nikhilvarmakandula) · [Portfolio](https://kandula.studio)
+## Why Cartwise
+
+Most nutrition apps die because logging every meal is too much work — around **97% of users are gone by day 30**. Cartwise removes the logging. Your grocery **receipt is the data** you already have: photograph it once and get a plain-language read of your whole shop.
+
+- **Zero-friction** — one Google tap, then straight to scanning. No onboarding form.
+- **Honest** — nutrition comes from real databases (USDA + Open Food Facts). Items we can't match are shown as *unmatched*, never filled with made-up numbers.
+- **Private** — the receipt photo is read **on your device**; only the extracted text reaches the server.
+
+## Features
+
+| | |
+|---|---|
+| 🧾 **Receipt scan** | On-device OCR reads the receipt, strips SKU/price codes, and extracts item names. |
+| 🥗 **Real nutrition** | Each item is matched to USDA FoodData Central, with Open Food Facts as a fallback. |
+| 📊 **Three-signal summary** | One thing to watch, one gap, one win — expandable to the full macro/micro breakdown. |
+| 🔖 **Barcode lookup** | Add a single product by barcode when a receipt misses it. |
+| 🗂️ **Batches** | Every scan is saved; open one to edit names, mark items eaten, or remove them. |
+| 🛡️ **Guarded input** | Non-receipt images are refused with a clear message. |
+
+## How it works
+
+```mermaid
+flowchart TD
+    U[📷 Receipt photo] --> OCR["Tesseract.js OCR<br/>(on-device)"]
+    OCR --> L[Text lines]
+    L -->|POST /api/grocery/receipt| G{Looks like<br/>a receipt?}
+    G -- no --> R[422 · refused]
+    G -- yes --> P[Parse lines<br/>strip codes · title-case]
+    P --> M[Match nutrition per item]
+    M -->|primary| USDA[(USDA FoodData Central)]
+    M -->|fallback| OFF[(Open Food Facts)]
+    M --> DB[(PostgreSQL<br/>via Prisma)]
+    DB --> B[🗂️ Batches + summary]
+
+    BC[🔖 Barcode page] -->|/api/food-db/barcode| OFF
+    AUTH["Google OAuth · Auth.js v5"] -. protects .-> G
+```
+
+1. The browser runs OCR on the receipt and sends only the **text lines**.
+2. The server checks the text really is a receipt, strips register codes, and pulls a name per line.
+3. Each name is matched to real per-100g nutrition and the batch is saved to Postgres.
+
+## Tech stack
+
+- **Framework** — Next.js 15 (App Router), React 19, TypeScript (strict)
+- **Auth** — Auth.js (NextAuth v5), Google OAuth, JWT sessions
+- **Data** — Prisma ORM + PostgreSQL (Neon/Supabase)
+- **OCR** — Tesseract.js (runs client-side)
+- **Nutrition** — USDA FoodData Central + Open Food Facts
+- **Styling** — hand-written CSS design tokens, light + dark mode, `next/image`
+- **Tests / CI** — Vitest + GitHub Actions (lint · typecheck · test · build)
+
+## Getting started
+
+```bash
+git clone https://github.com/kandulanikhilvarma/cartwise.git
+cd cartwise
+npm install
+cp .env.example .env      # fill in the values below
+npx prisma migrate dev    # create tables
+npm run dev               # http://localhost:3000
+```
+
+### Environment (`.env`)
+
+| Variable | What it is |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (see deploy note) |
+| `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth web client |
+| `USDA_FDC_API_KEY` | Free key: https://fdc.nal.usda.gov/api-key-signup |
+| `GITHUB_ID` / `GITHUB_SECRET` | Optional GitHub provider |
+
+`NEXTAUTH_URL` is optional — `trustHost` infers it. Set it only to pin a domain.
+
+## Testing
+
+```bash
+npm test        # vitest — nutrition lookup, receipt parsing, insights
+npm run build   # production build
+```
+
+## Deployment (Vercel + Postgres)
+
+Push to `main` and Vercel builds it. Two gotchas worth knowing:
+
+- **Use the pooled database URL.** Serverless functions are IPv4; a Supabase/Neon *direct* host (`db.*.supabase.co:5432`) is IPv6-only and won't connect. Use the **transaction pooler** (`…pooler.supabase.com:6543?pgbouncer=true`).
+- **Add the production redirect URI** to your Google OAuth client: `https://<domain>/api/auth/callback/google`.
+
+## Project structure
+
+```
+src/
+├── app/                    # routes: marketing, (auth), (app), api
+├── features/               # grocery · scanner · nutrition · auth
+├── infrastructure/         # ocr (parse + client OCR) · services · state · db
+└── shared/                 # components (logo, nav, footer) · lib · config
+prisma/schema.prisma        # User · GroceryBatch · GroceryItem
+```
+
+## Roadmap
+
+Manual food log · photo food recognition · additive/ingredient flags · deficiency alerts · weekly pattern insights · calorie targets · data export.
+
+## License
+
+[Apache 2.0](LICENSE).
+
+---
+
+<p align="center">
+  Built by <strong>Nikhilvarma Kandula</strong> ·
+  <a href="https://www.linkedin.com/in/nikhilvarmakandula">LinkedIn</a> ·
+  <a href="https://kandula.studio">Portfolio</a> ·
+  <a href="mailto:kandulanikhilvarma@gmail.com">Email</a>
+</p>
