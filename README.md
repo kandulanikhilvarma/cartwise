@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/images/hero-produce.jpg" alt="Cartwise — a wall of fresh grocery produce" width="100%" />
+  <img src="public/images/screens/home-hero.png" alt="Cartwise homepage — Snap your receipt. Know what you bought." width="100%" />
 </p>
 
 <h1 align="center">🛒 Cartwise</h1>
@@ -42,6 +42,20 @@ Most nutrition apps die because logging every meal is too much work — around *
 | 🔖 **Barcode lookup** | Add a single product by barcode when a receipt misses it. |
 | 🗂️ **Batches** | Every scan is saved; open one to edit names, mark items eaten, or remove them. |
 | 🛡️ **Guarded input** | Non-receipt images are refused with a clear message. |
+
+## Screens
+
+<table>
+  <tr>
+    <td width="34%" valign="top"><img src="public/images/screens/home-mobile.png" alt="Cartwise on mobile" /></td>
+    <td width="66%" valign="top">
+      <img src="public/images/screens/login.png" alt="One-tap Google sign-in" /><br/>
+      <img src="public/images/screens/how-it-works.png" alt="How it works — from receipt to nutrition" />
+    </td>
+  </tr>
+</table>
+
+> The receipt scan and batch views live behind Google sign-in — [try them on the live demo](https://cartwise-nine.vercel.app).
 
 ## How it works
 
