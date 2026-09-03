@@ -57,6 +57,14 @@ export async function PATCH(request: Request) {
     patch.activityFactor = factor
   }
 
+  if (body.householdSize !== undefined) {
+    const size = Number(body.householdSize)
+    if (!Number.isFinite(size) || size < 1 || size > 12) {
+      return NextResponse.json({ message: 'Household must be between 1 and 12.' }, { status: 400 })
+    }
+    patch.householdSize = Math.round(size)
+  }
+
   if (body.units !== undefined) {
     if (!UNITS.includes(String(body.units))) {
       return NextResponse.json({ message: 'Units must be metric or imperial.' }, { status: 400 })

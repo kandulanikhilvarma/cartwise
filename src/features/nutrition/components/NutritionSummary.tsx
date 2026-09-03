@@ -7,7 +7,11 @@ import {
   computeSpend,
   type SignalKind,
 } from '@/features/nutrition/lib/batch-insights'
-import { rdaForProfile, type NutrientProfile } from '@/features/nutrition/lib/rda-constants'
+import {
+  householdSizeOf,
+  shopReference,
+  type NutrientProfile,
+} from '@/features/nutrition/lib/rda-constants'
 import type { GroceryItem } from '@/features/grocery/types'
 import { Meter } from '@/shared/components/Meter'
 
@@ -35,19 +39,23 @@ type NutritionSummaryProps = {
 export function NutritionSummary({ items, profile, currency }: NutritionSummaryProps) {
   const [showDetails, setShowDetails] = useState(false)
 
-  const { signals, totals, coverage, rda, spend } = useMemo(() => {
+  const { signals, totals, coverage, weekly, spend } = useMemo(() => {
     const { totals: computed, coverage: cover } = computeBatchTotals(items)
     return {
       signals: computeBatchSignals(items, profile),
       totals: computed,
       coverage: cover,
-      rda: rdaForProfile(profile),
+      weekly: shopReference(profile),
       spend: computeSpend(items),
     }
   }, [items, profile])
 
   const unweighed = coverage.matched - coverage.weighed
   const canShowTotals = coverage.weighed > 0
+
+  // A shop is a week's supply, not a meal, so that is what it is measured against.
+  const household = householdSizeOf(profile)
+  const periodLabel = household === 1 ? 'a week for one person' : `a week for ${household} people`
 
   return (
     <section className="nutrition-read">
@@ -101,71 +109,80 @@ export function NutritionSummary({ items, profile, currency }: NutritionSummaryP
           </button>
 
           {showDetails ? (
-            <div className="meter-list" aria-label="Nutrient totals against daily references">
+            <div className="meter-list" aria-label={`Nutrient totals against ${periodLabel}`}>
               <Meter
                 label="Energy"
                 value={totals.caloriesKcal}
-                reference={rda.caloriesKcal}
+                reference={weekly.caloriesKcal}
                 unit="kcal"
                 direction="less-is-better"
+                periodLabel={periodLabel}
               />
               <Meter
                 label="Protein"
                 value={totals.proteinG}
-                reference={rda.proteinG}
+                reference={weekly.proteinG}
                 unit="g"
                 direction="more-is-better"
+                periodLabel={periodLabel}
               />
               <Meter
                 label="Fibre"
                 value={totals.fiberG}
-                reference={rda.fiberG}
+                reference={weekly.fiberG}
                 unit="g"
                 direction="more-is-better"
+                periodLabel={periodLabel}
               />
               <Meter
                 label="Sugar"
                 value={totals.sugarG}
-                reference={rda.sugarG}
+                reference={weekly.sugarG}
                 unit="g"
                 direction="less-is-better"
+                periodLabel={periodLabel}
               />
               <Meter
                 label="Fat"
                 value={totals.fatG}
-                reference={rda.fatG}
+                reference={weekly.fatG}
                 unit="g"
                 direction="less-is-better"
+                periodLabel={periodLabel}
               />
               <Meter
                 label="Sodium"
                 value={totals.sodiumMg}
-                reference={rda.sodiumMg}
+                reference={weekly.sodiumMg}
                 unit="mg"
                 direction="less-is-better"
+                periodLabel={periodLabel}
               />
               <Meter
                 label="Vitamin D"
                 value={totals.vitaminDMcg}
-                reference={rda.vitaminDMcg}
+                reference={weekly.vitaminDMcg}
                 unit="µg"
                 direction="more-is-better"
+                periodLabel={periodLabel}
                 decimals={1}
               />
               <Meter
                 label="Iron"
                 value={totals.ironMg}
-                reference={rda.ironMg}
+                reference={weekly.ironMg}
                 unit="mg"
                 direction="more-is-better"
+                periodLabel={periodLabel}
                 decimals={1}
               />
               <Meter
                 label="Calcium"
                 value={totals.calciumMg}
-                reference={rda.calciumMg}
+                reference={weekly.calciumMg}
                 unit="mg"
                 direction="more-is-better"
+                periodLabel={periodLabel}
               />
             </div>
           ) : null}

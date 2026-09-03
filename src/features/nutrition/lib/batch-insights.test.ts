@@ -5,7 +5,7 @@ import {
   computeSpend,
   itemGrams,
 } from './batch-insights'
-import { rdaForProfile, RDA } from './rda-constants'
+import { daysOfSupply, rdaForProfile, shopReference, RDA } from './rda-constants'
 import { classifyFoodGroup } from './food-group'
 import type { GroceryItem } from '@/features/grocery/types'
 
@@ -101,18 +101,53 @@ describe('computeBatchSignals', () => {
 
 describe('computeSpend', () => {
   it('returns null when the receipt carried no prices', () => {
-    expect(computeSpend([item({ unitPrice: null })])).toBeNull()
+    expect(computeSpend([item({ linePrice: null })])).toBeNull()
   })
 
-  it('totals price by quantity and groups it', () => {
+  it('treats the printed price as the line total, never multiplying by quantity', () => {
+    // "2 x BREAD 4.90" means 4.90 for both, not 9.80.
     const spend = computeSpend([
-      item({ unitPrice: 2.5, quantity: 2, foodGroup: 'produce' }),
-      item({ id: 'b', unitPrice: 4, quantity: 1, foodGroup: 'protein' }),
+      item({ linePrice: 2.5, quantity: 2, foodGroup: 'produce' }),
+      item({ id: 'b', linePrice: 4, quantity: 1, foodGroup: 'protein' }),
     ])
-    expect(spend?.total).toBe(9)
-    // Sorted by spend: produce is 2.50 x 2, protein is 4.00 x 1.
-    expect(spend?.byGroup[0]).toMatchObject({ group: 'produce', spend: 5 })
-    expect(spend?.byGroup[1]).toMatchObject({ group: 'protein', spend: 4 })
+    expect(spend?.total).toBe(6.5)
+    expect(spend?.byGroup[0]).toMatchObject({ group: 'protein', spend: 4 })
+    expect(spend?.byGroup[1]).toMatchObject({ group: 'produce', spend: 2.5 })
+  })
+})
+
+describe('shop references', () => {
+  it('measures a shop against a week, not a single day', () => {
+    const daily = rdaForProfile(null)
+    const weekly = shopReference(null)
+    expect(weekly.caloriesKcal).toBe(daily.caloriesKcal * 7)
+  })
+
+  it('scales the week by household size', () => {
+    const alone = shopReference({ householdSize: 1 })
+    const four = shopReference({ householdSize: 4 })
+    expect(four.sodiumMg).toBe(alone.sodiumMg * 4)
+  })
+
+  it('reports days of supply for the household', () => {
+    // 4600 mg of sodium is two days for one person, one day for two.
+    expect(daysOfSupply(4600, 2300, { householdSize: 1 })).toBeCloseTo(2)
+    expect(daysOfSupply(4600, 2300, { householdSize: 2 })).toBeCloseTo(1)
+  })
+
+  it('does not call a week-long shop an excess for a family', () => {
+    const family = { householdSize: 4 }
+    const items = [
+      item({ packGrams: 10_000, sodiumMg: 400, foodGroup: 'produce' }),
+      item({ id: 'b', packGrams: 2000, foodGroup: 'produce' }),
+      item({ id: 'c', packGrams: 2000, foodGroup: 'produce' }),
+    ]
+    const solo = computeBatchSignals(items, { householdSize: 1 })
+    const shared = computeBatchSignals(items, family)
+    const soloWatch = solo.find((signal) => signal.kind === 'watch')
+    const sharedWatch = shared.find((signal) => signal.kind === 'watch')
+    expect(soloWatch?.note).toContain('for one person')
+    expect(sharedWatch?.note).toContain('for 4 people')
   })
 })
 

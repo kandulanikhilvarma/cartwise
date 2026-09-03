@@ -5,7 +5,7 @@ ALTER TABLE "GroceryBatch" ADD COLUMN     "totalSpend" DOUBLE PRECISION,
 
 -- AlterTable: real mass, price and classification per item
 ALTER TABLE "GroceryItem" ADD COLUMN     "packGrams" DOUBLE PRECISION,
-                          ADD COLUMN     "unitPrice" DOUBLE PRECISION,
+                          ADD COLUMN     "linePrice" DOUBLE PRECISION,
                           ADD COLUMN     "foodGroup" TEXT,
                           ADD COLUMN     "novaGroup" INTEGER,
                           ADD COLUMN     "nutriScore" TEXT,
@@ -18,6 +18,7 @@ CREATE TABLE "Profile" (
     "ageYears" INTEGER,
     "sex" TEXT,
     "activityFactor" DOUBLE PRECISION NOT NULL DEFAULT 1.4,
+    "householdSize" INTEGER NOT NULL DEFAULT 1,
     "units" TEXT NOT NULL DEFAULT 'metric',
     "theme" TEXT NOT NULL DEFAULT 'system',
     "updatedAt" TIMESTAMP(3) NOT NULL,

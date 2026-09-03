@@ -7,7 +7,7 @@ const COLUMNS: Array<[header: string, read: (item: GroceryItem) => unknown]> = [
   ['Product', (item) => item.productName],
   ['Quantity', (item) => item.quantity],
   ['Pack grams', (item) => item.packGrams],
-  ['Unit price', (item) => item.unitPrice],
+  ['Line price', (item) => item.linePrice],
   ['Food group', (item) => item.foodGroup],
   ['NOVA group', (item) => item.novaGroup],
   ['Nutri-Score', (item) => item.nutriScore],

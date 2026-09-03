@@ -1,5 +1,6 @@
-import type { Metadata } from 'next'
-import { Young_Serif, Hanken_Grotesk } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Young_Serif, Hanken_Grotesk, Fragment_Mono } from 'next/font/google'
+import { SITE_URL } from '@/shared/config/site'
 import './globals.css'
 
 const youngSerif = Young_Serif({
@@ -10,7 +11,15 @@ const youngSerif = Young_Serif({
 
 const hankenGrotesk = Hanken_Grotesk({
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-body',
+})
+
+// A receipt is set in a monospace. Every figure in the app is too.
+const fragmentMono = Fragment_Mono({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-mono',
 })
 
 export const metadata: Metadata = {
@@ -20,13 +29,32 @@ export const metadata: Metadata = {
   },
   description:
     'Snap your grocery receipt. Cartwise reads it on your device and matches every item to real nutrition data — no daily food logging.',
-  metadataBase: new URL('https://cartwise.app'),
+  metadataBase: new URL(SITE_URL),
+  applicationName: 'Cartwise',
   openGraph: {
     title: 'Cartwise — know what you bought',
     description: 'One receipt in. Real nutrition out. No manual logging.',
     type: 'website',
+    siteName: 'Cartwise',
+    url: SITE_URL,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Cartwise — know what you bought',
+    description: 'One receipt in. Real nutrition out. No manual logging.',
   },
 }
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f4eee1' },
+    { media: '(prefers-color-scheme: dark)', color: '#14160f' },
+  ],
+}
+
+// Applies a saved theme before first paint so the page never flashes the
+// wrong ground. Kept inline and tiny for that reason.
+const THEME_SCRIPT = `try{var t=localStorage.getItem('cartwise-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t}}catch(e){}`
 
 export default function RootLayout({
   children,
@@ -34,21 +62,27 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${youngSerif.variable} ${hankenGrotesk.variable}`}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
+      <body
+        className={`${youngSerif.variable} ${hankenGrotesk.variable} ${fragmentMono.variable}`}
+      >
         {/*
-          Cartwise homepage — direction contract (Persuade)
-          THESIS: A grocery receipt is proof of what you eat; the page reads like a
-            weekend food broadsheet, refusing the cold blue-glass SaaS hero.
+          Cartwise — direction contract (Persuade + Operate, one warm system)
+          THESIS: A grocery receipt is proof of what you eat; the app reads like a
+            weekend food broadsheet, refusing the cold blue-glass SaaS default.
           OWN-WORLD: Warm cream/paper ground, one committed deep grocery-green owning
             whole bands, marmalade accent, Young Serif display over Hanken Grotesk,
-            real produce/receipt/shopper photography in tall framed plates.
+            Fragment Mono for every figure, real produce photography in framed plates.
           STORY: A weekly shopper sees their receipt become a legible nutrition read,
             trusts that nothing is faked, and scans their first receipt.
-          FIRST VIEWPORT: Oversized serif headline left, full-bleed produce plate right,
-            green primary CTA under the headline.
+          FIRST VIEWPORT: Full-bleed produce plate under an oversized serif headline,
+            green primary CTA beneath it.
           FORM: market editorial (user-pinned, grounded list). seed 06a51552.
-          FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+          FINISH: unreviewed and undocumented is unfinished; this build ends with the
+            finish review, the verdict, and DESIGN.md.
         */}
         {children}
       </body>

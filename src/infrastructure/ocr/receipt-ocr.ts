@@ -50,7 +50,7 @@ async function buildItems(lines: string[]): Promise<{ items: GroceryItem[]; trun
       productName: line.productName,
       quantity: line.quantity,
       packGrams: line.packGrams,
-      unitPrice: line.unitPrice,
+      linePrice: line.linePrice,
       unit: match?.unit ?? null,
       matchConfidence: match?.matchConfidence ?? null,
       foodGroup: match?.foodGroup ?? null,

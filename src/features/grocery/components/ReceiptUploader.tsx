@@ -1,14 +1,22 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { GroceryBatch } from '@/features/grocery/types'
+import type { NutrientProfile } from '@/features/nutrition/lib/rda-constants'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
 import { ocrReceiptToLines } from '@/features/grocery/lib/client-ocr'
 
-type Stage = 'idle' | 'reading' | 'matching'
+type Stage = 'idle' | 'preparing' | 'reading' | 'matching'
 
-export function ReceiptUploader() {
+const STAGE_COPY: Record<Exclude<Stage, 'idle'>, string> = {
+  preparing: 'Sharpening the photo on your device.',
+  reading: 'Reading the receipt on your device.',
+  matching: 'Matching items to nutrition data.',
+}
+
+export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null }) {
   const router = useRouter()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -52,10 +60,11 @@ export function ReceiptUploader() {
 
     setError(null)
     setBatch(null)
-    setStage('reading')
+    setStage('preparing')
     setProgress(0)
 
     try {
+      setStage('reading')
       const lines = await ocrReceiptToLines(file, setProgress)
       if (lines.join('').trim().length === 0) {
         throw new Error('Couldn’t read any text. Try a sharper, well-lit photo of the whole receipt.')
@@ -136,7 +145,9 @@ export function ReceiptUploader() {
               chooseFile(event.dataTransfer.files?.[0] ?? null)
             }}
           >
-            <p className="upload-drop-hint">Drag a photo here, or</p>
+            <p className="upload-drop-hint">
+              Lay the receipt flat, fill the frame, and keep the whole strip in shot.
+            </p>
             <div className="upload-drop-actions">
               <button className="button button-primary" type="button" onClick={() => cameraInputRef.current?.click()}>
                 Take photo
@@ -154,18 +165,24 @@ export function ReceiptUploader() {
           type="button"
           onClick={handleProcess}
         >
-          {stage === 'reading'
-            ? `Reading receipt… ${Math.round(progress * 100)}%`
-            : stage === 'matching'
-              ? 'Matching nutrition…'
-              : 'Process receipt'}
+          {stage === 'preparing'
+            ? 'Preparing the photo…'
+            : stage === 'reading'
+              ? `Reading receipt… ${Math.round(progress * 100)}%`
+              : stage === 'matching'
+                ? 'Matching nutrition…'
+                : 'Process receipt'}
         </button>
 
-        <p aria-live="polite" className="sr-status fine-print">
+        {stage === 'reading' ? (
+          <div className="progress-track" aria-hidden="true">
+            <span className="progress-fill" style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+        ) : null}
+
+        <p aria-live="polite" className="sr-status">
           {isBusy
-            ? stage === 'reading'
-              ? 'Reading the receipt on your device.'
-              : 'Matching items to nutrition data.'
+            ? STAGE_COPY[stage]
             : file
               ? 'Ready to process.'
               : 'No receipt selected yet.'}
@@ -180,9 +197,16 @@ export function ReceiptUploader() {
       {batch ? (
         <section className="result-card" aria-live="polite">
           <h2>{batch.storeName ?? 'Your grocery batch'}</h2>
-          <p className="fine-print">
+          <p className="fine-print num">
             {matchedCount} of {items.length} items matched to nutrition data.
           </p>
+
+          {batch.itemsTruncated ? (
+            <p className="notice">
+              This receipt ran longer than Cartwise reads in one pass, so the last lines were left
+              out. Open the batch to add anything missing.
+            </p>
+          ) : null}
 
           {items.length === 0 ? (
             <p className="error-text">
@@ -191,15 +215,18 @@ export function ReceiptUploader() {
             </p>
           ) : (
             <>
-              <div className="result-items">
+              <div className="result-items stagger">
                 {items.map((item) => (
                   <article className="result-item" key={item.id}>
                     <strong>{item.productName}</strong>
-                    <p>
-                      {item.quantity} {item.unit ?? 'item'}
+                    <p className="num">
+                      {item.quantity} × {item.packGrams ? `${item.packGrams} g` : 'unknown weight'}
+                      {item.linePrice != null ? ` · ${item.linePrice.toFixed(2)}` : ''}
                     </p>
                     {item.matchConfidence != null ? (
-                      <p className="fine-print">Match confidence: {Math.round(item.matchConfidence * 100)}%</p>
+                      <p className="fine-print num">
+                        Match confidence: {Math.round(item.matchConfidence * 100)}%
+                      </p>
                     ) : (
                       <p className="fine-print">No nutrition match — open the batch to fix the name.</p>
                     )}
@@ -207,7 +234,17 @@ export function ReceiptUploader() {
                 ))}
               </div>
 
-              <NutritionSummary items={items} />
+              <NutritionSummary
+                items={items}
+                profile={profile}
+                currency={batch.currency ?? null}
+              />
+
+              <div className="cta-row">
+                <Link className="button button-primary" href={`/grocery/${batch.id}`}>
+                  Open this batch
+                </Link>
+              </div>
             </>
           )}
         </section>

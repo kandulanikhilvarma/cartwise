@@ -5,7 +5,7 @@ export type GroceryItem = {
   unit?: string | null
   /** Real mass bought, in grams. Null when the receipt did not say. */
   packGrams?: number | null
-  unitPrice?: number | null
+  linePrice?: number | null
   matchConfidence?: number | null
   foodGroup?: string | null
   novaGroup?: number | null

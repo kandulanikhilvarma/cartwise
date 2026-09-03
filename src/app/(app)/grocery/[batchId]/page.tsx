@@ -1,11 +1,16 @@
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import { auth } from '@/auth'
-import { getBatch } from '@/infrastructure/state/batch-store'
+import { getBatch, getProfile } from '@/infrastructure/state/batch-store'
 import { GroceryItemList } from '@/features/grocery/components/GroceryItemList'
+import { BatchHeader } from '@/features/grocery/components/BatchHeader'
+import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
 
 type BatchPageProps = {
   params: Promise<{ batchId: string }>
 }
+
+export const metadata: Metadata = { title: 'Batch' }
 
 export default async function BatchPage({ params }: BatchPageProps) {
   const { batchId } = await params
@@ -16,7 +21,10 @@ export default async function BatchPage({ params }: BatchPageProps) {
     notFound()
   }
 
-  const batch = await getBatch(ownerEmail, batchId)
+  const [batch, profile] = await Promise.all([
+    getBatch(ownerEmail, batchId),
+    getProfile(ownerEmail),
+  ])
 
   if (!batch) {
     notFound()
@@ -24,13 +32,30 @@ export default async function BatchPage({ params }: BatchPageProps) {
 
   return (
     <main className="surface-page">
-      <section className="surface-card">
-        <h1>{batch.storeName ?? 'Grocery batch'}</h1>
-        <p className="lede">
-          Edit a name to re-match nutrition, mark items as eaten, or remove anything that isn’t yours.
+      <BatchHeader
+        batchId={batch.id}
+        storeName={batch.storeName ?? 'Grocery batch'}
+        purchasedAt={batch.purchasedAt}
+      />
+
+      {batch.itemsTruncated ? (
+        <p className="notice">
+          This receipt was longer than Cartwise reads in one pass, so the last lines were left out.
+          Add anything missing below.
         </p>
-        <GroceryItemList batchId={batch.id} items={batch.items} />
-      </section>
+      ) : null}
+
+      {batch.items.length > 0 ? (
+        <section className="surface-card">
+          <NutritionSummary
+            items={batch.items}
+            profile={profile}
+            currency={batch.currency ?? null}
+          />
+        </section>
+      ) : null}
+
+      <GroceryItemList batchId={batch.id} items={batch.items} />
     </main>
   )
 }

@@ -2,6 +2,8 @@ export type NutrientProfile = {
   ageYears?: number | null
   sex?: string | null
   activityFactor?: number | null
+  /** How many people the shop feeds. Without it a family shop reads as excess. */
+  householdSize?: number | null
 }
 
 export type Rda = {
@@ -65,4 +67,35 @@ export function rdaForProfile(profile?: NutrientProfile | null): Rda {
     calciumMg:
       (age !== null && age >= 70) || (sex === 'female' && age !== null && age >= 50) ? 1200 : 1000,
   }
+}
+
+export const DAYS_IN_SHOP = 7
+
+export function householdSizeOf(profile?: NutrientProfile | null): number {
+  const size = profile?.householdSize
+  return typeof size === 'number' && Number.isFinite(size) && size >= 1 ? Math.round(size) : 1
+}
+
+/**
+ * What a week of eating looks like for this household. A shop is a supply, not
+ * a meal: comparing a full trolley against a single day's reference makes every
+ * shop look like an excess, which is the wrong reading and the wrong advice.
+ */
+export function shopReference(profile?: NutrientProfile | null): Rda {
+  const daily = rdaForProfile(profile)
+  const multiplier = DAYS_IN_SHOP * householdSizeOf(profile)
+
+  return Object.fromEntries(
+    Object.entries(daily).map(([key, value]) => [key, value * multiplier]),
+  ) as Rda
+}
+
+/** How many person-days of a nutrient the shop actually carries. */
+export function daysOfSupply(
+  amount: number,
+  dailyReference: number,
+  profile?: NutrientProfile | null,
+): number {
+  const perDay = dailyReference * householdSizeOf(profile)
+  return perDay > 0 ? amount / perDay : 0
 }

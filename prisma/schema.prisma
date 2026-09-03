@@ -24,6 +24,7 @@ model Profile {
   ageYears       Int?
   sex            String? // "female" | "male" | "unspecified"
   activityFactor Float    @default(1.4)
+  householdSize  Int      @default(1)
   units          String   @default("metric") // "metric" | "imperial"
   theme          String   @default("system") // "system" | "light" | "dark"
   updatedAt      DateTime @updatedAt
@@ -57,7 +58,7 @@ model GroceryItem {
   // Real mass of what was bought. Nutrition arrives per 100 g, so without this
   // every batch total is the sum of arbitrary 100 g portions.
   packGrams       Float?
-  unitPrice       Float?
+  linePrice       Float?
   barcodeId       String?
   matchedFoodId   String?
   matchConfidence Float?

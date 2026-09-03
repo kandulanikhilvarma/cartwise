@@ -1,7 +1,16 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
+import { auth } from '@/auth'
+import { getProfile } from '@/infrastructure/state/batch-store'
 import { ReceiptUploader } from '@/features/grocery/components/ReceiptUploader'
 
-export default function ScanPage() {
+export const metadata: Metadata = { title: 'Scan a receipt' }
+
+export default async function ScanPage() {
+  const session = await auth()
+  const ownerEmail = session?.user?.email
+  const profile = ownerEmail ? await getProfile(ownerEmail) : null
+
   return (
     <main className="surface-page">
       <div className="scan-intro">
@@ -12,7 +21,7 @@ export default function ScanPage() {
         </p>
       </div>
 
-      <ReceiptUploader />
+      <ReceiptUploader profile={profile} />
 
       <p className="fine-print">
         Missed an item, or scanning a single product?{' '}

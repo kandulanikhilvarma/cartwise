@@ -192,8 +192,9 @@ export function stripCodes(line: string): string {
   s = s.replace(/\s+\d+(?:\.\d+)?\s*(?:kg|g|lb|lbs|oz|ml|l|ea|ct|pk)\b.*$/i, '')
   // Trailing "@ $x" unit-price tail.
   s = s.replace(/\s+@\s*[$£€]?\d.*$/i, '')
-  // Trailing long bare code (6+ digits/alnum).
-  s = s.replace(/\s+[a-z0-9]{6,}\s*$/i, '')
+  // Trailing bare code. It must contain a digit: a purely alphabetic last word
+  // is the product name ("BABY SPINACH", "CHERRY TOMATOES"), not a register code.
+  s = s.replace(/\s+(?=[a-z0-9]*\d)[a-z0-9]{6,}\s*$/i, '')
   return s.replace(/\s{2,}/g, ' ').trim()
 }
 
@@ -219,16 +220,25 @@ export type ParsedLine = {
   productName: string
   quantity: number
   packGrams: number | null
-  unitPrice: number | null
+  /** The amount charged for the line, which is already the extended total. */
+  linePrice: number | null
 }
 
 /**
  * Everything one receipt line carries. Extraction happens before stripCodes
  * removes the price and weight tails, which is why it lives in one pass.
+ *
+ * A line must carry money or a weight to count as a purchase. Without that
+ * rule the shop's name and street address parse as groceries, and inventing an
+ * item is worse than missing one.
  */
 export function parseItemLine(rawLine: string): ParsedLine | null {
   const line = cleanLine(rawLine)
   if (isNoiseLine(line)) return null
+
+  const linePrice = extractPrice(line)
+  const packGrams = extractPackGrams(line)
+  if (linePrice === null && packGrams === null) return null
 
   const rawName = deriveProductName(line)
   if (!hasRealName(rawName)) return null
@@ -236,8 +246,8 @@ export function parseItemLine(rawLine: string): ParsedLine | null {
   return {
     productName: toTitleCase(rawName),
     quantity: extractQuantity(line),
-    packGrams: extractPackGrams(line),
-    unitPrice: extractPrice(line),
+    packGrams,
+    linePrice,
   }
 }
 

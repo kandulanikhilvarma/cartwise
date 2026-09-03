@@ -1,6 +1,13 @@
 import type { GroceryItem } from '@/features/grocery/types'
 import { FOOD_GROUP_LABEL, type FoodGroup } from './food-group'
-import { rdaForProfile, type NutrientProfile, type Rda } from './rda-constants'
+import {
+  DAYS_IN_SHOP,
+  householdSizeOf,
+  rdaForProfile,
+  shopReference,
+  type NutrientProfile,
+  type Rda,
+} from './rda-constants'
 
 export type NutrientTotals = {
   caloriesKcal: number
@@ -114,27 +121,46 @@ function round(value: number): number {
   return Math.round(value)
 }
 
-function pct(value: number, reference: number): number {
-  return reference > 0 ? (value / reference) * 100 : 0
+/** Share of a week's supply for the household, as a percentage. */
+function pct(value: number, weekly: number): number {
+  return weekly > 0 ? (value / weekly) * 100 : 0
 }
 
-/** The nutrient running hardest against its reference. */
-function findWatch(totals: NutrientTotals, rda: Rda, items: GroceryItem[]): Signal | null {
+function days(value: number, weekly: number): string {
+  if (weekly <= 0) return 'no reference'
+  const supply = (value / weekly) * DAYS_IN_SHOP
+  if (supply < 1) return `under a day’s worth`
+  return `about ${supply.toFixed(supply < 10 ? 1 : 0)} days’ worth`
+}
+
+function forWhom(profile?: NutrientProfile | null): string {
+  const size = householdSizeOf(profile)
+  return size === 1 ? 'for one person' : `for ${size} people`
+}
+
+/** The nutrient running hardest against a week's supply. */
+function findWatch(
+  totals: NutrientTotals,
+  weekly: Rda,
+  items: GroceryItem[],
+  profile?: NutrientProfile | null,
+): Signal | null {
+  const who = forWhom(profile)
   const candidates: Array<{ label: string; share: number; note: string }> = [
     {
       label: 'Sodium',
-      share: pct(totals.sodiumMg, rda.sodiumMg),
-      note: `${round(totals.sodiumMg)} mg across the shop, against a ${rda.sodiumMg} mg daily reference`,
+      share: pct(totals.sodiumMg, weekly.sodiumMg),
+      note: `${round(totals.sodiumMg).toLocaleString()} mg in the shop — ${days(totals.sodiumMg, weekly.sodiumMg)} ${who}`,
     },
     {
       label: 'Sugar',
-      share: pct(totals.sugarG, rda.sugarG),
-      note: `${round(totals.sugarG)} g across the shop, against a ${rda.sugarG} g daily reference`,
+      share: pct(totals.sugarG, weekly.sugarG),
+      note: `${round(totals.sugarG)} g in the shop — ${days(totals.sugarG, weekly.sugarG)} ${who}`,
     },
     {
-      label: 'Saturated-fat load',
-      share: pct(totals.fatG, rda.fatG),
-      note: `${round(totals.fatG)} g of total fat, against a ${rda.fatG} g daily reference`,
+      label: 'Fat',
+      share: pct(totals.fatG, weekly.fatG),
+      note: `${round(totals.fatG)} g in the shop — ${days(totals.fatG, weekly.fatG)} ${who}`,
     },
   ]
 
@@ -143,7 +169,7 @@ function findWatch(totals: NutrientTotals, rda: Rda, items: GroceryItem[]): Sign
     return { kind: 'watch', label: heaviest.label, note: heaviest.note }
   }
 
-  // Nothing is running high on mass, so processing level is the honest concern.
+  // Nothing is running high by mass, so processing level is the honest concern.
   const ultraProcessed = items.filter((item) => item.novaGroup === 4).length
   if (ultraProcessed >= 3) {
     return {
@@ -159,7 +185,12 @@ function findWatch(totals: NutrientTotals, rda: Rda, items: GroceryItem[]): Sign
 }
 
 /** What the shop is missing, rather than what it has too much of. */
-function findGap(totals: NutrientTotals, rda: Rda, items: GroceryItem[]): Signal | null {
+function findGap(
+  totals: NutrientTotals,
+  weekly: Rda,
+  items: GroceryItem[],
+  profile?: NutrientProfile | null,
+): Signal | null {
   const produce = items.filter((item) => item.foodGroup === 'produce').length
   if (produce === 0 && items.length > 0) {
     return {
@@ -169,26 +200,27 @@ function findGap(totals: NutrientTotals, rda: Rda, items: GroceryItem[]): Signal
     }
   }
 
+  const who = forWhom(profile)
   const candidates: Array<{ label: string; share: number; note: string }> = [
     {
       label: 'Vitamin D',
-      share: pct(totals.vitaminDMcg, rda.vitaminDMcg),
-      note: `${totals.vitaminDMcg.toFixed(1)} µg against a ${rda.vitaminDMcg} µg daily reference`,
+      share: pct(totals.vitaminDMcg, weekly.vitaminDMcg),
+      note: `${totals.vitaminDMcg.toFixed(1)} µg — ${days(totals.vitaminDMcg, weekly.vitaminDMcg)} ${who}`,
     },
     {
       label: 'Fibre',
-      share: pct(totals.fiberG, rda.fiberG),
-      note: `${round(totals.fiberG)} g against a ${rda.fiberG} g daily reference`,
+      share: pct(totals.fiberG, weekly.fiberG),
+      note: `${round(totals.fiberG)} g — ${days(totals.fiberG, weekly.fiberG)} ${who}`,
     },
     {
       label: 'Iron',
-      share: pct(totals.ironMg, rda.ironMg),
-      note: `${totals.ironMg.toFixed(1)} mg against a ${rda.ironMg} mg daily reference`,
+      share: pct(totals.ironMg, weekly.ironMg),
+      note: `${totals.ironMg.toFixed(1)} mg — ${days(totals.ironMg, weekly.ironMg)} ${who}`,
     },
     {
       label: 'Calcium',
-      share: pct(totals.calciumMg, rda.calciumMg),
-      note: `${round(totals.calciumMg)} mg against a ${rda.calciumMg} mg daily reference`,
+      share: pct(totals.calciumMg, weekly.calciumMg),
+      note: `${round(totals.calciumMg).toLocaleString()} mg — ${days(totals.calciumMg, weekly.calciumMg)} ${who}`,
     },
   ]
 
@@ -197,7 +229,12 @@ function findGap(totals: NutrientTotals, rda: Rda, items: GroceryItem[]): Signal
 }
 
 /** Something that went right, named specifically. */
-function findWin(totals: NutrientTotals, rda: Rda, items: GroceryItem[]): Signal | null {
+function findWin(
+  totals: NutrientTotals,
+  weekly: Rda,
+  items: GroceryItem[],
+  profile?: NutrientProfile | null,
+): Signal | null {
   const groups = new Map<FoodGroup, number>()
   for (const item of items) {
     const group = item.foodGroup as FoodGroup | null | undefined
@@ -213,19 +250,21 @@ function findWin(totals: NutrientTotals, rda: Rda, items: GroceryItem[]): Signal
     }
   }
 
-  if (pct(totals.fiberG, rda.fiberG) >= 100) {
+  const who = forWhom(profile)
+
+  if (pct(totals.fiberG, weekly.fiberG) >= 100) {
     return {
       kind: 'win',
       label: 'Fibre',
-      note: `${round(totals.fiberG)} g — past the ${rda.fiberG} g daily reference`,
+      note: `${round(totals.fiberG)} g — a full week ${who}`,
     }
   }
 
-  if (pct(totals.proteinG, rda.proteinG) >= 100) {
+  if (pct(totals.proteinG, weekly.proteinG) >= 100) {
     return {
       kind: 'win',
       label: 'Protein',
-      note: `${round(totals.proteinG)} g — past the ${rda.proteinG} g daily reference`,
+      note: `${round(totals.proteinG)} g — a full week ${who}`,
     }
   }
 
@@ -257,20 +296,23 @@ export function computeBatchSignals(
 ): Signal[] {
   if (items.length === 0) return []
 
-  const rda = rdaForProfile(profile)
+  const weekly = shopReference(profile)
   const { totals, coverage } = computeBatchTotals(items)
 
-  // Group counts survive without weights, but nutrient signals do not.
+  // Group counts survive without weights; nutrient claims do not.
   const nutrientSignalsPossible = coverage.weighed > 0
+  const usable = nutrientSignalsPossible ? totals : EMPTY_TOTALS
 
   const signals: Array<Signal | null> = [
-    nutrientSignalsPossible ? findWatch(totals, rda, items) : null,
-    findGap(nutrientSignalsPossible ? totals : EMPTY_TOTALS, rda, items),
-    findWin(nutrientSignalsPossible ? totals : EMPTY_TOTALS, rda, items),
+    nutrientSignalsPossible ? findWatch(totals, weekly, items, profile) : null,
+    findGap(usable, weekly, items, profile),
+    findWin(usable, weekly, items, profile),
   ]
 
   return signals.filter((signal): signal is Signal => signal !== null)
 }
+
+export { rdaForProfile, shopReference }
 
 export type SpendSummary = {
   total: number
@@ -279,20 +321,24 @@ export type SpendSummary = {
   costPerProteinGram: number | null
 }
 
-/** What the shop cost, from the prices already printed on the receipt. */
+/**
+ * What the shop cost, from the prices already printed on the receipt. The
+ * printed amount is the extended line total, so it is never multiplied by
+ * quantity — "2 x BREAD 4.90" means 4.90 for both.
+ */
 export function computeSpend(items: GroceryItem[]): SpendSummary | null {
   const priced = items.filter(
-    (item) => typeof item.unitPrice === 'number' && Number.isFinite(item.unitPrice),
+    (item) => typeof item.linePrice === 'number' && Number.isFinite(item.linePrice),
   )
   if (priced.length === 0) return null
 
-  const total = priced.reduce((sum, item) => sum + (item.unitPrice ?? 0) * (item.quantity || 1), 0)
+  const total = priced.reduce((sum, item) => sum + (item.linePrice ?? 0), 0)
 
   const groupSpend = new Map<FoodGroup, number>()
   for (const item of priced) {
     const group = item.foodGroup as FoodGroup | null | undefined
     if (!group) continue
-    groupSpend.set(group, (groupSpend.get(group) ?? 0) + (item.unitPrice ?? 0) * (item.quantity || 1))
+    groupSpend.set(group, (groupSpend.get(group) ?? 0) + (item.linePrice ?? 0))
   }
 
   const { totals } = computeBatchTotals(items)

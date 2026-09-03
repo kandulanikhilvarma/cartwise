@@ -60,6 +60,23 @@ function normalize(name: string): string {
 }
 
 /**
+ * A free-text search returns its best guess, which is sometimes wrong. Anything
+ * physically impossible per 100 g means the wrong product was matched, and a
+ * wrong match is worse than an honest "unmatched".
+ */
+function isPlausible(match: NutritionMatch): boolean {
+  const { proteinG, carbsG, fatG, sugarG, fiberG, caloriesKcal } = match
+  if ([proteinG, carbsG, fatG, sugarG, fiberG].some((value) => value < 0 || value > 100)) {
+    return false
+  }
+  if (sugarG > carbsG + 1) return false
+  if (proteinG + carbsG + fatG > 105) return false
+  // 100 g of pure fat is about 900 kcal; nothing edible exceeds that.
+  if (caloriesKcal < 0 || caloriesKcal > 900) return false
+  return true
+}
+
+/**
  * A source that never answers must not hold the whole receipt open. Any network
  * or timeout failure degrades to "no match", which the UI already shows honestly.
  */
@@ -276,7 +293,9 @@ export async function lookupNutrition(name: string): Promise<NutritionMatch | nu
     return cached.match
   }
 
-  const result = (await fromUsda(key)) ?? (await fromOpenFoodFacts(key))
+  const found = (await fromUsda(key)) ?? (await fromOpenFoodFacts(key))
+  const result = found && isPlausible(found) ? found : null
+
   memo.set(key, result)
   await writeCache(key, result)
   return result

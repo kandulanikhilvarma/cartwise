@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 
-const protectedPaths = ['/scan', '/grocery', '/barcode']
+const protectedPaths = ['/home', '/scan', '/grocery', '/barcode', '/settings']
 
 export default auth((request: NextRequest) => {
   const isProtected = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path))
@@ -21,5 +21,5 @@ export default auth((request: NextRequest) => {
 })
 
 export const config = {
-  matcher: ['/scan/:path*', '/grocery/:path*', '/barcode/:path*'],
+  matcher: ['/home/:path*', '/scan/:path*', '/grocery/:path*', '/barcode/:path*', '/settings/:path*'],
 }

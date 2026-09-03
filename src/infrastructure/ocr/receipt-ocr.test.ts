@@ -124,12 +124,36 @@ describe('parseItemLine', () => {
       productName: 'Organic Milk',
       quantity: 2,
       packGrams: 2000,
-      unitPrice: 3.99,
+      linePrice: 3.99,
     })
   })
 
   it('drops noise lines', () => {
     expect(parseItemLine('TOTAL 42.10')).toBeNull()
     expect(parseItemLine('0123456789012')).toBeNull()
+  })
+
+  // A line with neither money nor a weight is not a purchase. Without this the
+  // shop name and its street address parsed as groceries.
+  it('refuses header and address lines that carry no price or weight', () => {
+    expect(parseItemLine('FRESH MART')).toBeNull()
+    expect(parseItemLine('119 Bridge Street')).toBeNull()
+    expect(parseItemLine('THANK YOU FOR SHOPPING')).toBeNull()
+  })
+})
+
+describe('multi-word product names', () => {
+  // The trailing-code stripper used to eat any last word of 6+ letters, so
+  // "BABY SPINACH" became "Baby" and nothing matched as produce.
+  it('keeps the whole name when the last word is not a code', () => {
+    expect(deriveProductName('BABY SPINACH 200g 1.85')).toBe('BABY SPINACH')
+    expect(deriveProductName('CHERRY TOMATOES 400g 2.10')).toBe('CHERRY TOMATOES')
+    expect(deriveProductName('ORGANIC BANANAS 1.24 kg 2.18')).toBe('ORGANIC BANANAS')
+    expect(deriveProductName('CHICKEN BREAST 550g 6.75')).toBe('CHICKEN BREAST')
+  })
+
+  it('still strips a trailing code, which always carries a digit', () => {
+    expect(deriveProductName('COCA COLA 1234567890123 2.00')).toBe('COCA COLA')
+    expect(deriveProductName('OAT MILK SKU12345 1.50')).toBe('OAT MILK')
   })
 })
