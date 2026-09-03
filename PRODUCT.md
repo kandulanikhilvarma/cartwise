@@ -17,7 +17,7 @@ file upload both supported.
 ## Product Purpose
 
 Cartwise turns one grocery receipt into a structured grocery batch with real
-per-item nutrition and a short, plain-language summary. The wedge is passive
+per-item nutrition, what the shop cost, and a short, plain-language summary. The wedge is passive
 data: a receipt photo is the only "logging" that doesn't require daily effort,
 which is why most nutrition apps lose ~97% of users by day 30. Success = a
 shopper gets a useful nutrition read of their shop within a minute of scanning,
@@ -42,9 +42,15 @@ items. Barcode lookup available for items a receipt missed.
 
 - Receipt OCR runs client-side (Tesseract.js); the server never receives the
   image, only the extracted text lines.
-- Nutrition is real per-100g data from USDA FDC / Open Food Facts, cached by
-  product name. Unmatched items are shown honestly as unmatched — never filled
-  with fabricated numbers.
+- Nutrition is real per-100g data from USDA FDC / Open Food Facts, cached in
+  Postgres by product name. Figures are scaled by the pack weight printed on the
+  receipt; a line stating no weight is left out of the totals and reported in the
+  coverage line. Unmatched items are shown honestly as unmatched — never filled
+  with fabricated numbers, and a match that is impossible per 100 g is discarded.
+- A shop is measured against a week for the household, not one person's day, so
+  a full trolley is not reported as an excess. Household size lives in Settings.
+- Prices printed on the receipt become spend by food group and cost per gram of
+  protein. The printed amount is the extended line total, never a unit price.
 - Auth: Google OAuth (Auth.js v5), JWT sessions. GitHub optional.
 - Persistence: Postgres via Prisma (Neon in production). No permanent image
   storage; receipt images are processed for OCR only.
@@ -73,5 +79,6 @@ items. Barcode lookup available for items a receipt missed.
 - Passive over manual: the receipt does the logging.
 - Honest over impressive: show unmatched items and real confidence, never fake
   nutrition to look complete.
-- One clear first step, no onboarding wall.
+- One clear first step, no onboarding wall. A signed-out visitor can run a real
+  receipt through the real pipeline at /demo before creating anything.
 - Privacy by default: the receipt image stays on the device.
