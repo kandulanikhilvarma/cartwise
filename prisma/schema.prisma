@@ -8,12 +8,25 @@ datasource db {
 }
 
 model User {
-  id        String        @id @default(cuid())
-  email     String        @unique
+  id        String         @id @default(cuid())
+  email     String         @unique
   name      String?
   image     String?
-  createdAt DateTime      @default(now())
+  createdAt DateTime       @default(now())
   groceries GroceryBatch[]
+  profile   Profile?
+}
+
+// Drives a real RDA instead of the fixed 2000 kcal adult, plus display prefs.
+model Profile {
+  userId         String   @id
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ageYears       Int?
+  sex            String? // "female" | "male" | "unspecified"
+  activityFactor Float    @default(1.4)
+  units          String   @default("metric") // "metric" | "imperial"
+  theme          String   @default("system") // "system" | "light" | "dark"
+  updatedAt      DateTime @updatedAt
 }
 
 model GroceryBatch {
@@ -24,10 +37,14 @@ model GroceryBatch {
   storeName       String?
   receiptImageUrl String?
   ocrStatus       String        @default("pending")
+  totalSpend      Float?
+  currency        String?
+  itemsTruncated  Boolean       @default(false)
   items           GroceryItem[]
   createdAt       DateTime      @default(now())
 
   @@index([userId, createdAt])
+  @@index([userId, purchasedAt])
 }
 
 model GroceryItem {
@@ -37,19 +54,57 @@ model GroceryItem {
   productName     String
   quantity        Float        @default(1)
   unit            String?
+  // Real mass of what was bought. Nutrition arrives per 100 g, so without this
+  // every batch total is the sum of arbitrary 100 g portions.
+  packGrams       Float?
+  unitPrice       Float?
   barcodeId       String?
   matchedFoodId   String?
   matchConfidence Float?
+  foodGroup       String?
+  novaGroup       Int?
+  nutriScore      String?
   caloriesKcal    Float?
   proteinG        Float?
   carbsG          Float?
   fatG            Float?
+  sugarG          Float?
+  fiberG          Float?
   sodiumMg        Float?
   vitaminDMcg     Float?
   ironMg          Float?
   calciumMg       Float?
   consumed        Boolean      @default(false)
   consumedAt      DateTime?
+
+  @@index([batchId])
+}
+
+// Nutrition lookups survive serverless cold starts here instead of dying with
+// the per-process Map they used to live in.
+model FoodMatch {
+  id             String   @id @default(cuid())
+  normalizedName String   @unique
+  source         String // "usda" | "off"
+  sourceRef      String?
+  found          Boolean  @default(true)
+  foodGroup      String?
+  novaGroup      Int?
+  nutriScore     String?
+  caloriesKcal   Float?
+  proteinG       Float?
+  carbsG         Float?
+  fatG           Float?
+  sugarG         Float?
+  fiberG         Float?
+  sodiumMg       Float?
+  vitaminDMcg    Float?
+  ironMg         Float?
+  calciumMg      Float?
+  matchConfidence Float?
+  fetchedAt      DateTime @default(now())
+
+  @@index([fetchedAt])
 }
 
 // Auth.js uses JWT sessions (no database adapter), so no Account/Session/

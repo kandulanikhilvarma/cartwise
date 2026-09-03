@@ -6,14 +6,17 @@ import { looksLikeReceipt } from '@/infrastructure/ocr/receipt-parse'
 import { consumeRateLimit, requestClientKey } from '@/infrastructure/cache/rate-limit'
 import { parseJsonBody } from '@/shared/lib/http'
 
-const MAX_LINES = 200
+const MAX_LINES = 400
 
 export async function POST(request: Request) {
   const clientKey = requestClientKey(request)
   if (clientKey) {
-    const rate = consumeRateLimit(`receipt:${clientKey}`, { limit: 10, windowMs: 60_000 })
+    const rate = await consumeRateLimit(`receipt:${clientKey}`, { limit: 10, windowMs: 60_000 })
     if (!rate.allowed) {
-      return NextResponse.json({ message: 'Too many receipt uploads. Try again shortly.' }, { status: 429 })
+      return NextResponse.json(
+        { message: 'Too many receipt uploads. Try again shortly.' },
+        { status: 429 },
+      )
     }
   }
 
@@ -28,24 +31,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Receipt text lines are required' }, { status: 400 })
   }
 
-  const lines = body.lines.filter((line): line is string => typeof line === 'string').slice(0, MAX_LINES)
+  const lines = body.lines
+    .filter((line): line is string => typeof line === 'string')
+    .slice(0, MAX_LINES)
   if (lines.length === 0) {
     return NextResponse.json({ message: 'No readable text found on the receipt' }, { status: 400 })
   }
 
   if (!looksLikeReceipt(lines)) {
     return NextResponse.json(
-      { message: 'This doesn’t look like a grocery receipt or bill. Upload a receipt, or add a product by barcode.' },
+      {
+        message:
+          'This doesn’t look like a grocery receipt or bill. Upload a receipt, or add a product by barcode.',
+      },
       { status: 422 },
     )
   }
 
-  const fileName = typeof body.fileName === 'string' && body.fileName.trim() ? body.fileName.trim() : 'receipt'
+  const fileName =
+    typeof body.fileName === 'string' && body.fileName.trim() ? body.fileName.trim() : 'receipt'
 
   try {
     const parsed = await parseReceiptLines(lines)
     const batch = await createProcessingBatch(ownerEmail, fileName)
-    const completed = await completeBatch(ownerEmail, batch.id, parsed.items, parsed.storeName ?? fileName)
+    const completed = await completeBatch(ownerEmail, batch.id, parsed.items, {
+      storeName: parsed.storeName ?? fileName,
+      purchasedAt: parsed.purchasedAt,
+      totalSpend: parsed.totalSpend,
+      currency: parsed.currency,
+      itemsTruncated: parsed.itemsTruncated,
+    })
     return NextResponse.json(completed ?? batch)
   } catch (error) {
     console.error('Receipt processing failed:', error)
