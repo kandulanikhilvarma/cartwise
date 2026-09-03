@@ -32,10 +32,16 @@
   --accent-soft: #e0a25c;
   --accent-text: #8f4a10;
 
-  /* --- semantic signals --- */
+  /* --- semantic signals ---
+     The plain tokens colour fills and borders. The -text pair is the same hue
+     taken dark enough to clear 4.5:1 at 12px on its own tinted chip, which the
+     fill colours do not. */
   --signal-win: #3d6b4f;
   --signal-watch: #a2610f;
   --signal-gap: #4a5a6b;
+  --signal-win-text: #2f5540;
+  --signal-watch-text: #7d4a0b;
+  --signal-gap-text: #384857;
   --unmatched: #8a8272;
   --danger: #a23a2a;
 
@@ -94,6 +100,9 @@
     --signal-win: #7fb894;
     --signal-watch: #d69a4e;
     --signal-gap: #93a7b8;
+    --signal-win-text: #7fb894;
+    --signal-watch-text: #d69a4e;
+    --signal-gap-text: #93a7b8;
     --unmatched: #a49a83;
     --danger: #e0806f;
     --viz-produce: #7fae76;
@@ -128,6 +137,9 @@
   --signal-win: #7fb894;
   --signal-watch: #d69a4e;
   --signal-gap: #93a7b8;
+  --signal-win-text: #7fb894;
+  --signal-watch-text: #d69a4e;
+  --signal-gap-text: #93a7b8;
   --unmatched: #a49a83;
   --danger: #e0806f;
   --viz-produce: #7fae76;
@@ -720,18 +732,18 @@ td.num,
 .signal-tag.is-win {
   background: color-mix(in srgb, var(--signal-win) 15%, transparent);
   border-color: color-mix(in srgb, var(--signal-win) 40%, transparent);
-  color: var(--signal-win);
+  color: var(--signal-win-text);
 }
 .signal-tag.is-warn,
 .signal-tag.is-watch {
   background: color-mix(in srgb, var(--signal-watch) 15%, transparent);
   border-color: color-mix(in srgb, var(--signal-watch) 40%, transparent);
-  color: var(--signal-watch);
+  color: var(--signal-watch-text);
 }
 .signal-tag.is-gap {
   background: color-mix(in srgb, var(--signal-gap) 15%, transparent);
   border-color: color-mix(in srgb, var(--signal-gap) 40%, transparent);
-  color: var(--signal-gap);
+  color: var(--signal-gap-text);
 }
 
 /* ---------- Home: trust band (drenched green) ---------- */
@@ -1232,7 +1244,7 @@ td.num,
   color: var(--ink-soft);
 }
 .coverage-gap {
-  color: var(--signal-gap);
+  color: var(--signal-gap-text);
 }
 
 .meter-list {
@@ -1486,7 +1498,7 @@ td.num,
   border-color: color-mix(in srgb, var(--unmatched) 45%, transparent);
 }
 .item-chip.is-noweight {
-  color: var(--signal-gap);
+  color: var(--signal-gap-text);
   border-color: color-mix(in srgb, var(--signal-gap) 45%, transparent);
 }
 .item-actions {
