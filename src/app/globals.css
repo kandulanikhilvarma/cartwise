@@ -707,6 +707,11 @@ td.num,
 .signal-line:last-child {
   border-bottom: none;
 }
+/* The text column of a signal row. min-width:0 so a long note wraps instead
+   of forcing the grid column wider than the card. */
+.signal-row-body {
+  min-width: 0;
+}
 .signal-row-label,
 .signal-line-label {
   font-weight: 500;
