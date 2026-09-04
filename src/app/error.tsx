@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Button, buttonClass } from '@/shared/components/Button'
 
 export default function GlobalError({
   error,
@@ -16,10 +17,10 @@ export default function GlobalError({
         <h1>Something went wrong while loading this view.</h1>
         <p className="lede">{error.message || 'Please retry, or return to the homepage.'}</p>
         <div className="cta-row">
-          <button className="button button-primary" onClick={() => reset()} type="button">
+          <Button variant="primary"  onClick={() => reset()} type="button">
             Retry
-          </button>
-          <Link className="button button-secondary" href="/">
+          </Button>
+          <Link className={buttonClass()} href="/">
             Back to home
           </Link>
         </div>

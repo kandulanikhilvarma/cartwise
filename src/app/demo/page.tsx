@@ -5,6 +5,7 @@ import { MarketingNav } from '@/shared/components/MarketingNav'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
 import { parseReceiptLines } from '@/infrastructure/ocr/receipt-ocr'
 import { SAMPLE_RECEIPT } from '@/features/grocery/lib/sample-receipt'
+import { buttonClass } from '@/shared/components/Button'
 
 export const metadata: Metadata = {
   title: 'See it work',
@@ -79,10 +80,10 @@ export default async function DemoPage() {
         <h2>Now try it on your own shop.</h2>
         <p>One photo, one tap to sign in, and your read is built from your receipt instead of ours.</p>
         <div className="cta-row">
-          <Link className="button button-primary" href="/scan">
+          <Link className={buttonClass('primary')} href="/scan">
             Scan your receipt
           </Link>
-          <Link className="button button-secondary" href="/how-it-works">
+          <Link className={buttonClass()} href="/how-it-works">
             See how it works
           </Link>
         </div>

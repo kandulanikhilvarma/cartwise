@@ -1,6 +1,7 @@
 "use client"
 
 import { signIn } from 'next-auth/react'
+import { Button } from '@/shared/components/Button'
 
 type SignInButtonProps = {
   provider?: 'google' | 'github'
@@ -9,8 +10,8 @@ type SignInButtonProps = {
 
 export function SignInButton({ provider = 'google', label }: SignInButtonProps) {
   return (
-    <button className="button button-primary" onClick={() => signIn(provider, { callbackUrl: '/scan' })} type="button">
+    <Button variant="primary"  onClick={() => signIn(provider, { callbackUrl: '/scan' })} type="button">
       {label}
-    </button>
+    </Button>
   )
 }

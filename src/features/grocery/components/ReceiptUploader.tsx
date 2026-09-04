@@ -8,6 +8,7 @@ import type { NutrientProfile } from '@/features/nutrition/lib/rda-constants'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
 import { ReceiptCropper } from '@/features/grocery/components/ReceiptCropper'
 import { ocrReceiptToLines, type CropRect } from '@/features/grocery/lib/client-ocr'
+import { Button, buttonClass } from '@/shared/components/Button'
 
 type Stage = 'idle' | 'reading' | 'matching'
 
@@ -193,14 +194,13 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
                   <strong>
                     {pages.length > 1 ? `Photo ${index + 1} of ${pages.length}` : page.file.name}
                   </strong>
-                  <button
-                    className="button button-secondary button-small"
+                  <Button
+                    size="small"
                     disabled={isBusy}
                     onClick={() => removePage(page.id)}
-                    type="button"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
                 <ReceiptCropper
                   alt={`Receipt photo ${index + 1}`}
@@ -214,22 +214,18 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
 
             {pages.length < MAX_PAGES ? (
               <div className="upload-drop-actions">
-                <button
-                  className="button button-secondary"
+                <Button
                   disabled={isBusy}
                   onClick={() => cameraInputRef.current?.click()}
-                  type="button"
                 >
                   Photograph the next part
-                </button>
-                <button
-                  className="button button-secondary"
+                </Button>
+                <Button
                   disabled={isBusy}
                   onClick={() => fileInputRef.current?.click()}
-                  type="button"
                 >
                   Add another image
-                </button>
+                </Button>
               </div>
             ) : null}
           </div>
@@ -252,20 +248,20 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
               photos — they are read as one shop.
             </p>
             <div className="upload-drop-actions">
-              <button className="button button-primary" type="button" onClick={() => cameraInputRef.current?.click()}>
+              <Button variant="primary"  type="button" onClick={() => cameraInputRef.current?.click()}>
                 Take photo
-              </button>
-              <button className="button button-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
+              </Button>
+              <Button  type="button" onClick={() => fileInputRef.current?.click()}>
                 Upload image
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
-        <button
-          className="button button-primary upload-process"
+        <Button
+          variant="primary"
+          className="upload-process"
           disabled={isBusy || pages.length === 0}
-          type="button"
           onClick={handleProcess}
         >
           {stage === 'reading'
@@ -275,7 +271,7 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
               : pages.length > 1
                 ? `Process ${pages.length} photos`
                 : 'Process receipt'}
-        </button>
+        </Button>
 
         {stage === 'reading' ? (
           <div className="progress-track" aria-hidden="true">
@@ -338,7 +334,7 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
               />
 
               <div className="cta-row">
-                <Link className="button button-primary" href={`/grocery/${batch.id}`}>
+                <Link className={buttonClass('primary')} href={`/grocery/${batch.id}`}>
                   Open this batch
                 </Link>
               </div>

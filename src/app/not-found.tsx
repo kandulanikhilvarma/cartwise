@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
+import { buttonClass } from '@/shared/components/Button'
 
 export default function NotFound() {
   return (
@@ -14,10 +15,10 @@ export default function NotFound() {
           routes below.
         </p>
         <div className="cta-row">
-          <Link className="button button-primary" href="/scan">
+          <Link className={buttonClass('primary')} href="/scan">
             Go to scan
           </Link>
-          <Link className="button button-secondary" href="/">
+          <Link className={buttonClass()} href="/">
             Return home
           </Link>
         </div>

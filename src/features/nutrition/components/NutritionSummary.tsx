@@ -14,6 +14,7 @@ import {
 } from '@/features/nutrition/lib/rda-constants'
 import type { GroceryItem } from '@/features/grocery/types'
 import { Meter } from '@/shared/components/Meter'
+import { Button } from '@/shared/components/Button'
 
 const KIND_LABEL: Record<SignalKind, string> = {
   watch: 'Watch',
@@ -99,14 +100,12 @@ export function NutritionSummary({ items, profile, currency }: NutritionSummaryP
 
       {canShowTotals ? (
         <>
-          <button
+          <Button
             aria-expanded={showDetails}
-            className="button button-secondary"
             onClick={() => setShowDetails((current) => !current)}
-            type="button"
           >
             {showDetails ? 'Hide the full breakdown' : 'Show the full breakdown'}
-          </button>
+          </Button>
 
           {showDetails ? (
             <div className="meter-list" aria-label={`Nutrient totals against ${periodLabel}`}>

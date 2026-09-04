@@ -4,6 +4,8 @@ import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { GroceryItem } from '@/features/grocery/types'
 import { FOOD_GROUP_LABEL, type FoodGroup } from '@/features/nutrition/lib/food-group'
+import { Icon } from '@/shared/components/Icon'
+import { Button } from '@/shared/components/Button'
 
 type FrequentItem = {
   productName: string
@@ -350,9 +352,9 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
             onChange={(event) => setNewGrams(event.target.value)}
           />
         </label>
-        <button className="button button-primary" disabled={isSubmitting} onClick={addItem} type="button">
+        <Button variant="primary"  disabled={isSubmitting} onClick={addItem} type="button">
           Add item
-        </button>
+        </Button>
       </div>
 
       {frequent.length > 0 ? (
@@ -480,24 +482,22 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
                             }}
                           />
                         </label>
-                        <button
-                          className="button button-secondary button-small"
+                        <Button
+                          size="small"
                           disabled={searching}
                           onClick={() => void runSearch()}
-                          type="button"
                         >
                           {searching ? 'Searching…' : 'Search'}
-                        </button>
-                        <button
-                          className="button button-secondary button-small"
+                        </Button>
+                        <Button
+                          size="small"
                           onClick={() => {
                             setSearchItemId(null)
                             setSearchResults(null)
                           }}
-                          type="button"
                         >
                           Close
-                        </button>
+                        </Button>
                       </div>
 
                       {searchResults?.length === 0 ? (
@@ -533,67 +533,62 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
               )}
             </div>
             <div className="item-actions">
-              <button
-                className="button button-secondary button-small"
+              <Button
+                size="small"
                 onClick={() => toggleItem(item)}
-                type="button"
               >
                 {item.consumed ? 'Mark not eaten' : 'Mark eaten'}
-              </button>
+              </Button>
               {item.matchConfidence == null && editingItemId !== item.id ? (
                 <>
-                  <button
-                    className="button button-secondary button-small"
+                  <Button
+                    size="small"
                     disabled={isSubmitting}
                     onClick={() => retryMatch(item)}
-                    type="button"
                   >
                     Try match again
-                  </button>
-                  <button
-                    className="button button-secondary button-small"
+                  </Button>
+                  <Button
+                    size="small"
                     onClick={() => openSearch(item)}
-                    type="button"
                   >
                     Search food
-                  </button>
+                  </Button>
                 </>
               ) : null}
               {editingItemId === item.id ? (
                 <>
-                  <button
-                    className="button button-primary button-small"
+                  <Button
+                    variant="primary"
+                    size="small"
                     disabled={isSubmitting}
                     onClick={() => saveEdit(item.id)}
-                    type="button"
                   >
                     Save
-                  </button>
-                  <button
-                    className="button button-secondary button-small"
+                  </Button>
+                  <Button
+                    size="small"
                     onClick={() => setEditingItemId(null)}
-                    type="button"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </>
               ) : (
-                <button
-                  className="button button-secondary button-small"
+                <Button
+                  size="small"
                   onClick={() => startEdit(item)}
-                  type="button"
                 >
                   Edit
-                </button>
+                </Button>
               )}
-              <button
-                className="button button-danger button-small"
+              <Button
+                variant="danger"
+                size="small"
                 disabled={isSubmitting}
                 onClick={() => removeItem(item)}
-                type="button"
               >
                 Remove
-              </button>
+              </Button>
             </div>
           </article>
         ))}
@@ -606,7 +601,7 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
             Undo
           </button>
           <button onClick={() => setUndo(null)} type="button" aria-label="Dismiss">
-            ✕
+            <Icon name="close" />
           </button>
         </div>
       ) : null}

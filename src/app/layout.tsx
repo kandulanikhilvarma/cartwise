@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Young_Serif, Hanken_Grotesk, Fragment_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import { SITE_URL } from '@/shared/config/site'
 import './globals.css'
 
@@ -85,6 +86,9 @@ export default function RootLayout({
             finish review, the verdict, and DESIGN.md.
         */}
         {children}
+        {/* Page counts only: cookieless, no cross-site identifier, served from
+            this domain. Named in the privacy policy for that reason. */}
+        <Analytics />
       </body>
     </html>
   )

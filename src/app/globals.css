@@ -685,6 +685,11 @@ td.num,
   color: var(--ink-soft);
   font-style: italic;
 }
+.signal-demo-foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
 
 /* ---------- Signals (shared: homepage sample and the real read) ---------- */
 
@@ -940,6 +945,9 @@ td.num,
   padding: 14px 22px;
 }
 .auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--ink-soft);
   font-size: 0.95rem;
   font-weight: 500;
@@ -1612,6 +1620,14 @@ td.num,
   color: var(--signal-watch-text);
   border-color: color-mix(in srgb, var(--signal-watch) 45%, transparent);
 }
+/* Icons sit on the text baseline at the size of the text around them. */
+.icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  vertical-align: -0.125em;
+}
+
 /* Items this shopper actually repeats, offered as one tap each. */
 .buy-again {
   display: grid;

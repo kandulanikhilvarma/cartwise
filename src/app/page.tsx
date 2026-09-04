@@ -1,6 +1,8 @@
 import Image from 'next/image'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
+import { Icon } from '@/shared/components/Icon'
+import { buttonClass } from '@/shared/components/Button'
 
 const steps = [
   {
@@ -55,10 +57,10 @@ export default function HomePage() {
               diary, no logging every meal.
             </p>
             <div className="cta-row">
-              <a className="button button-primary" href="/scan">
+              <a className={buttonClass('primary')} href="/scan">
                 Scan a receipt
               </a>
-              <a className="button button-hero-ghost" href="/demo">
+              <a className={buttonClass('hero-ghost')} href="/demo">
                 See it work first
               </a>
             </div>
@@ -134,7 +136,10 @@ export default function HomePage() {
                 </div>
                 <p className="signal-demo-foot">
                   Shaped like a real read, with stand-in numbers.{' '}
-                  <a href="/demo">Run it on an actual receipt →</a>
+                  <a href="/demo">
+                    Run it on an actual receipt
+                    <Icon name="arrow-right" />
+                  </a>
                 </p>
               </div>
             </div>
@@ -167,10 +172,10 @@ export default function HomePage() {
             <h2>Your next shop can tell you something.</h2>
             <p>Scan one receipt and see what a week of groceries adds up to.</p>
             <div className="cta-row">
-              <a className="button button-primary" href="/scan">
+              <a className={buttonClass('primary')} href="/scan">
                 Scan your first receipt
               </a>
-              <a className="button button-secondary" href="/barcode">
+              <a className={buttonClass()} href="/barcode">
                 Try a barcode instead
               </a>
             </div>

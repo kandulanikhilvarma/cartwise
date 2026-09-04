@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/shared/components/Button'
 
 type BarcodeProduct = {
   code: string
@@ -75,9 +76,9 @@ export function BarcodeLookup() {
           />
         </label>
 
-        <button className="button button-primary" onClick={handleLookup} type="button" disabled={isLoading}>
+        <Button variant="primary"  onClick={handleLookup} type="button" disabled={isLoading}>
           {isLoading ? 'Looking up…' : 'Look up barcode'}
-        </button>
+        </Button>
 
         {error ? <p className="error-text">{error}</p> : null}
       </div>

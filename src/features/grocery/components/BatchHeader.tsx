@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button, buttonClass } from '@/shared/components/Button'
 
 export function BatchHeader({
   batchId,
@@ -81,65 +82,62 @@ export function BatchHeader({
       <div className="cta-row">
         {editing ? (
           <>
-            <button
-              className="button button-primary button-small"
+            <Button
+              variant="primary"
+              size="small"
               disabled={busy}
               onClick={saveName}
-              type="button"
             >
               Save name
-            </button>
-            <button
-              className="button button-secondary button-small"
+            </Button>
+            <Button
+              size="small"
               onClick={() => {
                 setName(storeName)
                 setEditing(false)
               }}
-              type="button"
             >
               Cancel
-            </button>
+            </Button>
           </>
         ) : (
-          <button
-            className="button button-secondary button-small"
+          <Button
+            size="small"
             onClick={() => setEditing(true)}
-            type="button"
           >
             Rename
-          </button>
+          </Button>
         )}
 
-        <a className="button button-secondary button-small" href={`/api/grocery/${batchId}/export`}>
+        <a className={buttonClass('secondary', 'small')} href={`/api/grocery/${batchId}/export`}>
           Export CSV
         </a>
 
         {confirming ? (
           <>
-            <button
-              className="button button-danger button-small"
+            <Button
+              variant="danger"
+              size="small"
               disabled={busy}
               onClick={remove}
-              type="button"
             >
               {busy ? 'Deleting…' : 'Yes, delete this batch'}
-            </button>
-            <button
-              className="button button-secondary button-small"
+            </Button>
+            <Button
+              size="small"
               onClick={() => setConfirming(false)}
-              type="button"
             >
               Keep it
-            </button>
+            </Button>
           </>
         ) : (
-          <button
-            className="button button-danger button-small"
+          <Button
+            variant="danger"
+            size="small"
             onClick={() => setConfirming(true)}
-            type="button"
           >
             Delete batch
-          </button>
+          </Button>
         )}
       </div>
 

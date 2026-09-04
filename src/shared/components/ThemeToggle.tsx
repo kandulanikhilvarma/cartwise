@@ -1,47 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Icon, type IconName } from '@/shared/components/Icon'
 
 type Theme = 'system' | 'light' | 'dark'
 
 const STORAGE_KEY = 'cartwise-theme'
 
-const OPTIONS: Array<{ value: Theme; label: string; icon: React.ReactNode }> = [
-  {
-    value: 'light',
-    label: 'Light',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-        <circle cx="10" cy="10" r="3.6" />
-        <path
-          strokeLinecap="round"
-          d="M10 2.4v1.8M10 15.8v1.8M17.6 10h-1.8M4.2 10H2.4M15.4 4.6l-1.3 1.3M5.9 14.1l-1.3 1.3M15.4 15.4l-1.3-1.3M5.9 5.9 4.6 4.6"
-        />
-      </svg>
-    ),
-  },
-  {
-    value: 'system',
-    label: 'Match system',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-        <rect x="2.6" y="3.6" width="14.8" height="10" rx="1.6" />
-        <path strokeLinecap="round" d="M7 16.6h6" />
-      </svg>
-    ),
-  },
-  {
-    value: 'dark',
-    label: 'Dark',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-        <path
-          strokeLinejoin="round"
-          d="M16.2 12.3A6.9 6.9 0 0 1 7.7 3.8a6.9 6.9 0 1 0 8.5 8.5Z"
-        />
-      </svg>
-    ),
-  },
+const OPTIONS: Array<{ value: Theme; label: string; icon: IconName }> = [
+  { value: 'light', label: 'Light', icon: 'sun' },
+  { value: 'system', label: 'Match system', icon: 'display' },
+  { value: 'dark', label: 'Dark', icon: 'moon' },
 ]
 
 function applyTheme(theme: Theme): void {
@@ -90,7 +59,7 @@ export function ThemeToggle() {
           title={option.label}
           onClick={() => choose(option.value)}
         >
-          {option.icon}
+          <Icon name={option.icon} />
           <span className="visually-hidden">{option.label}</span>
         </button>
       ))}

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { Logo } from '@/shared/components/Logo'
 import { SignOutButton } from '@/features/auth/components/SignOutButton'
+import { buttonClass } from '@/shared/components/Button'
 
 const links = [
   { href: '/how-it-works', label: 'How it works' },
@@ -32,17 +33,17 @@ export async function MarketingNav() {
         {user ? (
           <>
             {firstName ? <span className="nav-user">Hi, {firstName}</span> : null}
-            <Link className="button button-primary" href="/home">
+            <Link className={buttonClass('primary')} href="/home">
               Open Cartwise
             </Link>
             <SignOutButton />
           </>
         ) : (
           <>
-            <Link className="button button-secondary" href="/login">
+            <Link className={buttonClass()} href="/login">
               Sign in
             </Link>
-            <Link className="button button-primary" href="/scan">
+            <Link className={buttonClass('primary')} href="/scan">
               Scan a receipt
             </Link>
           </>

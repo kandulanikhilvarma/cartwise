@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { auth } from '@/auth'
 import { listBatches } from '@/infrastructure/state/batch-store'
 import { BatchList } from '@/features/grocery/components/BatchList'
+import { buttonClass } from '@/shared/components/Button'
 
 export const metadata: Metadata = { title: 'Batches' }
 
@@ -29,7 +30,7 @@ export default async function GroceryPage() {
         <section className="surface-card empty-state">
           <h2>No batches yet</h2>
           <p>Scan your first grocery receipt and it’ll show up here.</p>
-          <Link className="button button-primary" href="/scan">
+          <Link className={buttonClass('primary')} href="/scan">
             Scan a receipt
           </Link>
         </section>

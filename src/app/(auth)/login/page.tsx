@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { SignInButton } from '@/features/auth/components/SignInButton'
 import { Logo } from '@/shared/components/Logo'
+import { Icon } from '@/shared/components/Icon'
 
 export default function LoginPage() {
   const hasGithub = Boolean(process.env.GITHUB_ID && process.env.GITHUB_SECRET)
@@ -23,7 +24,8 @@ export default function LoginPage() {
           {hasGithub ? <SignInButton label="Continue with GitHub" provider="github" /> : null}
         </div>
         <Link className="auth-back" href="/">
-          ← Back to home
+          <Icon name="arrow-left" />
+          Back to home
         </Link>
         <p className="fine-print">
           We only use your Google name and email to save your batches. Questions?{' '}

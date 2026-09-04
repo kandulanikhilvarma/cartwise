@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { auth } from '@/auth'
 import { listBatches } from '@/infrastructure/state/batch-store'
 import { summarizeHistory } from '@/features/grocery/lib/history'
+import { buttonClass } from '@/shared/components/Button'
 
 export const metadata: Metadata = { title: 'Home' }
 
@@ -44,7 +45,7 @@ export default async function AppHomePage() {
             One photo of a receipt is all it takes. It is read on your device, matched to real
             nutrition data, and saved here.
           </p>
-          <Link className="button button-primary" href="/scan">
+          <Link className={buttonClass('primary')} href="/scan">
             Scan a receipt
           </Link>
         </section>
@@ -146,10 +147,10 @@ export default async function AppHomePage() {
       ) : null}
 
       <div className="cta-row">
-        <Link className="button button-primary" href="/scan">
+        <Link className={buttonClass('primary')} href="/scan">
           Scan another receipt
         </Link>
-        <Link className="button button-secondary" href="/grocery">
+        <Link className={buttonClass()} href="/grocery">
           See all batches
         </Link>
       </div>

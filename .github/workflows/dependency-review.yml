@@ -1,0 +1,23 @@
+name: Dependency review
+
+# CodeQL reads the code we write. This reads what we pull in: a pull request
+# that adds a dependency with a known advisory, or swaps in an incompatible
+# licence, fails here rather than in production.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Review dependency changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

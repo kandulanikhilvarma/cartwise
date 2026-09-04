@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { rdaForProfile } from '@/features/nutrition/lib/rda-constants'
+import { Button } from '@/shared/components/Button'
 
 export type ProfileValues = {
   ageYears: number | null
@@ -196,9 +197,9 @@ export function SettingsForm({
         </p>
 
         <div className="cta-row" style={{ marginTop: 'var(--s-3)' }}>
-          <button className="button button-primary" disabled={saving} onClick={save} type="button">
+          <Button variant="primary"  disabled={saving} onClick={save} type="button">
             {saving ? 'Saving…' : 'Save settings'}
-          </button>
+          </Button>
         </div>
 
         <p aria-live="polite" className="sr-status">
@@ -235,14 +236,13 @@ export function SettingsForm({
         </label>
 
         <div className="cta-row" style={{ marginTop: 'var(--s-3)' }}>
-          <button
-            className="button button-danger"
+          <Button
+            variant="danger"
             disabled={deleting || confirmEmail.trim().toLowerCase() !== email.toLowerCase()}
             onClick={removeAccount}
-            type="button"
           >
             {deleting ? 'Deleting…' : 'Delete my account'}
-          </button>
+          </Button>
         </div>
       </section>
     </>

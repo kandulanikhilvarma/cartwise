@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
+import { buttonClass } from '@/shared/components/Button'
 
 export default function ContactPage() {
   return (
@@ -12,7 +13,7 @@ export default function ContactPage() {
           Product feedback, support, a wrong nutrition match, or a partnership — email us and we’ll reply.
         </p>
         <p>
-          <a className="button button-primary" href="mailto:kandulanikhilvarma@gmail.com">
+          <a className={buttonClass('primary')} href="mailto:kandulanikhilvarma@gmail.com">
             kandulanikhilvarma@gmail.com
           </a>
         </p>
@@ -20,7 +21,7 @@ export default function ContactPage() {
           For a scan or account issue, include what you did and roughly when — it helps us reproduce it fast.
         </p>
         <div className="cta-row">
-          <Link className="button button-secondary" href="/">
+          <Link className={buttonClass()} href="/">
             Back to home
           </Link>
         </div>

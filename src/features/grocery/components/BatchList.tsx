@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { GroceryBatch } from '@/features/grocery/types'
+import { Button, buttonClass } from '@/shared/components/Button'
 
 type SortKey = 'newest' | 'oldest' | 'largest' | 'name'
 
@@ -96,9 +97,9 @@ export function BatchList({ batches }: { batches: GroceryBatch[] }) {
         <section className="surface-card empty-state">
           <h2>No batch matches that</h2>
           <p>Try a different store or product name, or clear the search.</p>
-          <button className="button button-secondary" onClick={() => setQuery('')} type="button">
+          <Button  onClick={() => setQuery('')} type="button">
             Clear search
-          </button>
+          </Button>
         </section>
       ) : (
         <div className="batch-list stagger">
@@ -120,17 +121,17 @@ export function BatchList({ batches }: { batches: GroceryBatch[] }) {
                   </p>
                 </div>
                 <div className="item-actions">
-                  <Link className="button button-secondary button-small" href={`/grocery/${batch.id}`}>
+                  <Link className={buttonClass('secondary', 'small')} href={`/grocery/${batch.id}`}>
                     Open
                   </Link>
-                  <button
-                    className="button button-danger button-small"
+                  <Button
+                    variant="danger"
+                    size="small"
                     disabled={busyId === batch.id}
                     onClick={() => remove(batch)}
-                    type="button"
                   >
                     {busyId === batch.id ? 'Deleting…' : 'Delete'}
-                  </button>
+                  </Button>
                 </div>
               </article>
             )
