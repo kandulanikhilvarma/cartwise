@@ -62,6 +62,13 @@ export default async function DemoPage() {
               {matched} of {parsed.items.length} lines matched to nutrition data
               {parsed.totalSpend !== null ? ` · receipt total ${parsed.totalSpend.toFixed(2)}` : ''}.
             </p>
+            {matched === 0 ? (
+              <p className="error-text">
+                Nothing matched, which means our nutrition sources are unreachable right now — not
+                that this receipt has no nutrition in it. The parse above is still real. Try again
+                shortly.
+              </p>
+            ) : null}
           </div>
 
           <NutritionSummary items={parsed.items} currency={parsed.currency} />
