@@ -40,6 +40,9 @@ type ItemRecord = {
   packGrams: number | null
   linePrice: number | null
   matchConfidence: number | null
+  matchSource: string | null
+  allergens: string[]
+  additives: string[]
   foodGroup: string | null
   novaGroup: number | null
   nutriScore: string | null
@@ -77,6 +80,9 @@ function toGroceryItem(item: ItemRecord): GroceryItem {
     packGrams: item.packGrams,
     linePrice: item.linePrice,
     matchConfidence: item.matchConfidence,
+    matchSource: item.matchSource,
+    allergens: item.allergens,
+    additives: item.additives,
     foodGroup: item.foodGroup,
     novaGroup: item.novaGroup,
     nutriScore: item.nutriScore,
@@ -113,11 +119,14 @@ function toGroceryBatch(batch: BatchRecord): GroceryBatch {
  * rename so an edited item stops reporting the previous product's figures —
  * the batch UI has always promised this and never did it.
  */
-async function nutritionFieldsFor(productName: string) {
-  const match = await lookupNutrition(productName)
+async function nutritionFieldsFor(productName: string, refresh = false) {
+  const match = await lookupNutrition(productName, { refresh })
   return {
     unit: match?.unit ?? null,
     matchConfidence: match?.matchConfidence ?? null,
+    matchSource: match?.source ?? null,
+    allergens: match?.allergens ?? [],
+    additives: match?.additives ?? [],
     foodGroup: match?.foodGroup ?? null,
     novaGroup: match?.novaGroup ?? null,
     nutriScore: match?.nutriScore ?? null,
@@ -147,7 +156,7 @@ function loadMemoryBatch(batchId: string): GroceryBatch | null {
   return memoryBatches.get(batchId) ?? null
 }
 
-function memoryCreateProcessingBatch(receiptName: string): GroceryBatch {
+function memoryCreateProcessingBatch(receiptName: string | null): GroceryBatch {
   return saveMemoryBatch({
     id: `batch-${Date.now()}`,
     storeName: receiptName,
@@ -208,6 +217,9 @@ function memoryAddItem(
         packGrams: input.packGrams ?? null,
         linePrice: null,
         matchConfidence: null,
+        matchSource: null,
+        allergens: [],
+        additives: [],
         foodGroup: null,
         novaGroup: null,
         nutriScore: null,
@@ -241,7 +253,8 @@ async function memoryUpdateItem(
 
   const nextName = patch.productName?.trim() || target.productName
   const renamed = nextName.toLowerCase() !== target.productName.toLowerCase()
-  const nutrition = renamed ? await nutritionFieldsFor(nextName) : null
+  const nutrition =
+    renamed || patch.rematch ? await nutritionFieldsFor(nextName, patch.rematch === true) : null
 
   return saveMemoryBatch({
     ...batch,
@@ -280,6 +293,9 @@ const ITEM_SELECT = {
   packGrams: true,
   linePrice: true,
   matchConfidence: true,
+  matchSource: true,
+  allergens: true,
+  additives: true,
   foodGroup: true,
   novaGroup: true,
   nutriScore: true,
@@ -319,6 +335,8 @@ export type ItemPatch = {
   unit?: string | null
   packGrams?: number | null
   consumed?: boolean
+  /** Ask the sources again for this name, past any cached miss. */
+  rematch?: boolean
 }
 
 function hasDatabase(): boolean {
@@ -327,7 +345,7 @@ function hasDatabase(): boolean {
 
 export async function createProcessingBatch(
   ownerEmail: string,
-  receiptName: string,
+  receiptName: string | null,
 ): Promise<GroceryBatch> {
   if (!hasDatabase()) return memoryCreateProcessingBatch(receiptName)
 
@@ -376,6 +394,9 @@ export async function completeBatch(
         packGrams: item.packGrams ?? null,
         linePrice: item.linePrice ?? null,
         matchConfidence: item.matchConfidence ?? null,
+        matchSource: item.matchSource ?? null,
+        allergens: item.allergens ?? [],
+        additives: item.additives ?? [],
         foodGroup: item.foodGroup ?? null,
         novaGroup: item.novaGroup ?? null,
         nutriScore: item.nutriScore ?? null,
@@ -510,6 +531,9 @@ export async function updateBatchItem(
   if (nextName && nextName.toLowerCase() !== item.productName.toLowerCase()) {
     // Renaming means the old figures describe a different product. Re-match.
     Object.assign(data, await nutritionFieldsFor(nextName), { productName: nextName })
+  } else if (patch.rematch) {
+    Object.assign(data, await nutritionFieldsFor(nextName ?? item.productName, true))
+    if (nextName) data.productName = nextName
   } else if (nextName) {
     data.productName = nextName
   }

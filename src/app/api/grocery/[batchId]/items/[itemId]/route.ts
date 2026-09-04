@@ -22,6 +22,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     unit?: string | null
     packGrams?: number | null
     consumed?: boolean
+    rematch?: boolean
   }>(request)
 
   if (!body) {

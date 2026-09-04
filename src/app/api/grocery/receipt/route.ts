@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await parseJsonBody<{ lines?: unknown; fileName?: unknown }>(request)
+  const body = await parseJsonBody<{ lines?: unknown }>(request)
   if (!body || !Array.isArray(body.lines)) {
     return NextResponse.json({ message: 'Receipt text lines are required' }, { status: 400 })
   }
@@ -48,14 +48,13 @@ export async function POST(request: Request) {
     )
   }
 
-  const fileName =
-    typeof body.fileName === 'string' && body.fileName.trim() ? body.fileName.trim() : 'receipt'
-
   try {
     const parsed = await parseReceiptLines(lines)
-    const batch = await createProcessingBatch(ownerEmail, fileName)
+    const batch = await createProcessingBatch(ownerEmail, null)
     const completed = await completeBatch(ownerEmail, batch.id, parsed.items, {
-      storeName: parsed.storeName ?? fileName,
+      // An image filename is not a shop. When the receipt does not name one the
+      // batch stays unnamed and the UI says so, which the user can rename.
+      storeName: parsed.storeName,
       purchasedAt: parsed.purchasedAt,
       totalSpend: parsed.totalSpend,
       currency: parsed.currency,

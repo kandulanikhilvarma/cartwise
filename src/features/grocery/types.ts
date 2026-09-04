@@ -7,6 +7,10 @@ export type GroceryItem = {
   packGrams?: number | null
   linePrice?: number | null
   matchConfidence?: number | null
+  /** "usda" | "off" — which database the figures came from. */
+  matchSource?: string | null
+  allergens?: string[]
+  additives?: string[]
   foodGroup?: string | null
   novaGroup?: number | null
   nutriScore?: string | null

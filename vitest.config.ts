@@ -10,5 +10,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // Vite loads .env, which carries the real DATABASE_URL. Without this the
+    // lookup cache tests read from and write to the production database — they
+    // only ever passed because it happened to be unreachable. Empty means the
+    // code takes its no-database path, which is what a unit test should see.
+    env: { DATABASE_URL: '' },
   },
 })

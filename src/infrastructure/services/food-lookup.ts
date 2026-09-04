@@ -22,6 +22,24 @@ export type NutritionMatch = {
   foodGroup: FoodGroup | null
   novaGroup: number | null
   nutriScore: string | null
+  /** Plain-language allergen names, already stripped of the `en:` tag prefix. */
+  allergens: string[]
+  /** E-numbers and additive names, same treatment. */
+  additives: string[]
+}
+
+/**
+ * Open Food Facts tags arrive as `en:milk` / `en:e330`. Only English-tagged
+ * entries are kept — an untranslated `fr:lait` would read as noise to the user.
+ */
+function readTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const names = value
+    .filter((tag): tag is string => typeof tag === 'string')
+    .filter((tag) => tag.startsWith('en:'))
+    .map((tag) => tag.slice(3).replace(/-/g, ' ').trim())
+    .filter(Boolean)
+  return Array.from(new Set(names)).slice(0, 12)
 }
 
 // L1: per-request memo. L2 (Postgres) is what survives a serverless cold start.
@@ -130,10 +148,13 @@ async function fromUsda(name: string): Promise<NutritionMatch | null> {
     matchConfidence: 0.85,
     unit: '100g',
     source: 'usda',
-    // USDA Foundation foods carry no processing grade; the name is all there is.
+    // USDA Foundation foods carry no processing grade, allergen tags or
+    // additive list; the name is all there is.
     foodGroup: classifyFoodGroup(name),
     novaGroup: null,
     nutriScore: null,
+    allergens: [],
+    additives: [],
   }
 }
 
@@ -151,6 +172,8 @@ async function fromOpenFoodFacts(name: string): Promise<NutritionMatch | null> {
       nova_group?: unknown
       nutriscore_grade?: unknown
       categories_tags?: unknown
+      allergens_tags?: unknown
+      additives_tags?: unknown
     }>
   } | null
 
@@ -186,6 +209,8 @@ async function fromOpenFoodFacts(name: string): Promise<NutritionMatch | null> {
     foodGroup: foodGroupFromOffCategories(categories) ?? classifyFoodGroup(name),
     novaGroup: Number.isInteger(nova) && nova >= 1 && nova <= 4 ? nova : null,
     nutriScore: grade && /^[a-e]$/i.test(grade) ? grade.toLowerCase() : null,
+    allergens: readTags(product?.allergens_tags),
+    additives: readTags(product?.additives_tags),
   }
 }
 
@@ -206,6 +231,8 @@ type CacheRow = {
   foodGroup: string | null
   novaGroup: number | null
   nutriScore: string | null
+  allergens: string[]
+  additives: string[]
 }
 
 function rowToMatch(row: CacheRow): NutritionMatch | null {
@@ -227,6 +254,8 @@ function rowToMatch(row: CacheRow): NutritionMatch | null {
     foodGroup: (row.foodGroup as FoodGroup | null) ?? null,
     novaGroup: row.novaGroup,
     nutriScore: row.nutriScore,
+    allergens: row.allergens,
+    additives: row.additives,
   }
 }
 
@@ -251,6 +280,8 @@ async function writeCache(key: string, match: NutritionMatch | null): Promise<vo
     foodGroup: match?.foodGroup ?? null,
     novaGroup: match?.novaGroup ?? null,
     nutriScore: match?.nutriScore ?? null,
+    allergens: match?.allergens ?? [],
+    additives: match?.additives ?? [],
     caloriesKcal: match?.caloriesKcal ?? null,
     proteinG: match?.proteinG ?? null,
     carbsG: match?.carbsG ?? null,
@@ -280,17 +311,23 @@ async function writeCache(key: string, match: NutritionMatch | null): Promise<vo
  * to Open Food Facts. Returns null when neither source has a usable match — the
  * caller must surface an "unmatched" item, never fabricated numbers.
  */
-export async function lookupNutrition(name: string): Promise<NutritionMatch | null> {
+export async function lookupNutrition(
+  name: string,
+  { refresh = false }: { refresh?: boolean } = {},
+): Promise<NutritionMatch | null> {
   const key = normalize(name)
   if (!key) return null
 
-  const memoed = memo.get(key)
-  if (memoed !== undefined) return memoed
+  // A user asking to retry is asking to go past the miss we already recorded.
+  if (!refresh) {
+    const memoed = memo.get(key)
+    if (memoed !== undefined) return memoed
 
-  const cached = await readCache(key)
-  if (cached.hit) {
-    memo.set(key, cached.match)
-    return cached.match
+    const cached = await readCache(key)
+    if (cached.hit) {
+      memo.set(key, cached.match)
+      return cached.match
+    }
   }
 
   const found = (await fromUsda(key)) ?? (await fromOpenFoodFacts(key))

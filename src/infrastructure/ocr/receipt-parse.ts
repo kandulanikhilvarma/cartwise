@@ -31,7 +31,10 @@ export function isNoiseLine(line: string): boolean {
 export function extractQuantity(line: string): number {
   // A short leading number followed by a letter is a quantity ("3 Eggs",
   // "2 x Bananas"). A long leading number is a SKU/UPC code, not a quantity.
-  const quantityMatch = line.match(/^(\d{1,2})\s*(?:x|×)?\s+(?=[a-z])/i)
+  // An explicit multiplier is trusted even when a pack size follows it, so
+  // "2 x 400g Beans" counts two packs rather than one.
+  const quantityMatch =
+    line.match(/^(\d{1,2})\s*(?:x|×)\s*(?=[a-z0-9])/i) ?? line.match(/^(\d{1,2})\s+(?=[a-z])/i)
   if (!quantityMatch) {
     return 1
   }

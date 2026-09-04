@@ -23,6 +23,24 @@ function groupLabel(group?: string | null): string | null {
   return FOOD_GROUP_LABEL[group as FoodGroup] ?? null
 }
 
+const SOURCE_LABEL: Record<string, string> = {
+  usda: 'USDA',
+  off: 'Open Food Facts',
+}
+
+/**
+ * Which database answered, not a percentage. The stored confidence only ever
+ * holds one of two source constants, so printing it as "70% match" invented a
+ * precision the number never had.
+ */
+function sourceLabel(item: GroceryItem): string {
+  return (item.matchSource && SOURCE_LABEL[item.matchSource]) ?? 'Matched'
+}
+
+function titleCase(value: string): string {
+  return value.replace(/\b[a-z]/g, (character) => character.toUpperCase())
+}
+
 export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
   const router = useRouter()
   const [localItems, setLocalItems] = useState(items)
@@ -75,6 +93,19 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  function retryMatch(item: GroceryItem) {
+    void request(
+      `/api/grocery/${batchId}/items/${item.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rematch: true }),
+      },
+      `Asked the nutrition sources about ${item.productName} again.`,
+      'Could not reach the nutrition sources.',
+    )
   }
 
   function toggleItem(item: GroceryItem) {
@@ -309,14 +340,22 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
                     {item.novaGroup === 4 ? (
                       <span className="item-chip">Ultra-processed</span>
                     ) : null}
+                    {(item.allergens ?? []).map((allergen) => (
+                      <span className="item-chip is-allergen" key={allergen}>
+                        Contains {allergen}
+                      </span>
+                    ))}
+                    {(item.additives ?? []).length > 0 ? (
+                      <span className="item-chip" title={(item.additives ?? []).map(titleCase).join(', ')}>
+                        {(item.additives ?? []).length} additives
+                      </span>
+                    ) : null}
                     {item.matchConfidence == null ? (
                       <span className="item-chip is-unmatched">No nutrition match</span>
                     ) : !item.packGrams ? (
                       <span className="item-chip is-noweight">Not in totals — no weight</span>
                     ) : (
-                      <span className="item-chip num">
-                        {Math.round(item.matchConfidence * 100)}% match
-                      </span>
+                      <span className="item-chip">{sourceLabel(item)}</span>
                     )}
                   </div>
                 </>
@@ -330,6 +369,16 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
               >
                 {item.consumed ? 'Mark not eaten' : 'Mark eaten'}
               </button>
+              {item.matchConfidence == null && editingItemId !== item.id ? (
+                <button
+                  className="button button-secondary button-small"
+                  disabled={isSubmitting}
+                  onClick={() => retryMatch(item)}
+                  type="button"
+                >
+                  Try match again
+                </button>
+              ) : null}
               {editingItemId === item.id ? (
                 <>
                   <button

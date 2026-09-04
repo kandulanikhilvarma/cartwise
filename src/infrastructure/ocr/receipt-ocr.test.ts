@@ -31,6 +31,23 @@ describe('receipt-ocr parsing helpers', () => {
     expect(extractQuantity('Cheddar Cheese')).toBe(1)
   })
 
+  it('counts packs when a multiplier precedes a pack size', () => {
+    // "2 x 400g" is two 400 g tins. Reading it as one understates the mass by half.
+    expect(extractQuantity('2 x 400g Baked Beans 1.98')).toBe(2)
+    expect(extractQuantity('3 × 500 ml Oat Milk 4.50')).toBe(3)
+    // Still not a quantity: a bare number followed by another number is a code.
+    expect(extractQuantity('12 3456789 Whole Milk 3.99')).toBe(1)
+    // A decimal weight leading the line is a weight, not a count.
+    expect(extractQuantity('1.24 kg Bananas 2.85')).toBe(1)
+  })
+
+  it('multiplies pack size by quantity for the real mass on the line', () => {
+    const line = parseItemLine('2 x 400g Baked Beans 1.98')
+    expect(line?.quantity).toBe(2)
+    expect(line?.packGrams).toBe(400)
+    expect(line?.productName).toBe('Baked Beans')
+  })
+
   it('strips SKU codes, quantities and trailing prices to leave the name', () => {
     expect(deriveProductName('2 x Whole Milk 3.99')).toBe('Whole Milk')
     expect(deriveProductName('085123 BANANAS 1.20')).toBe('BANANAS')
