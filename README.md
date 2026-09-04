@@ -48,13 +48,15 @@ And a shop is a **week's supply for a household**, not one person's day — so a
 
 | | |
 |---|---|
-| 🧾 **Receipt scan** | On-device OCR with contrast and downscale pre-processing, then SKU/price stripping to leave the product name. |
+| 🧾 **Receipt scan** | On-device OCR with crop, contrast and downscale pre-processing, then SKU/price stripping to leave the product name. A long till roll goes in as several photos and is read as one shop. |
 | ⚖️ **Weighted totals** | Pack weights read off the receipt scale every figure. Unweighed items stay out of the totals and say so. |
-| 🥗 **Real nutrition** | USDA FoodData Central first, Open Food Facts as fallback, plus NOVA processing group and Nutri-Score. |
+| 🥗 **Real nutrition** | USDA FoodData Central first, Open Food Facts as fallback, plus NOVA processing group, Nutri-Score and allergen flags. Each item names the database that answered. |
 | 📊 **Watch · gap · win** | One thing running high, one thing missing, one thing that went right — then meters against a week for your household. |
 | 💷 **Spend** | Prices already on the receipt become cost by food group and cost per gram of protein. |
 | 🗂️ **Batches** | Search, sort, rename, delete, export to CSV. Undo on item removal. |
 | 🔖 **Barcode lookup** | Add a single product by barcode when a receipt misses it. |
+| 🔍 **Fix a bad match** | Search both food databases by hand and pick the right product, or retry a lookup that failed because a source was down. |
+| 🔁 **Buy again** | Items bought in more than one previous shop are offered as one tap each. |
 | 🌗 **Light and dark** | A full parallel palette with an explicit toggle, plus reduced-motion and forced-colors support. |
 | 🛡️ **Guarded input** | Non-receipt images are refused with a clear message; lines with no price or weight are not treated as food. |
 
@@ -78,7 +80,7 @@ And a shop is a **week's supply for a household**, not one person's day — so a
 flowchart LR
   subgraph Device["On device (browser)"]
     CAM["Camera or file upload"]
-    PRE["Pre-process<br/>grayscale · deskew · crop"]
+    PRE["Pre-process<br/>crop · grayscale · contrast · downscale"]
     OCR["Tesseract.js OCR"]
   end
   subgraph Server["Next.js route handlers"]

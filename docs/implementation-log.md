@@ -156,7 +156,7 @@ Data and correctness
 
 Product
 - Dashboard, settings (profile, household, units, account deletion), batch
-  search/sort/rename/delete, CSV export, undo on item removal, buy-again list.
+  search/sort/rename/delete, CSV export, undo on item removal.
 - Signed-out /demo running the real pipeline on a fixed sample receipt.
 - OCR pre-processing (grayscale, contrast stretch, downscale) before Tesseract.
 - PWA manifest, icon, robots, sitemap, OG image, security headers.
@@ -173,9 +173,65 @@ Design
 
 Repo
 - README rebuilt around four validated Mermaid diagrams; clone URL corrected
-  from cartwise to foodlens, which had made the quickstart fail.
+  to match the repository name.
 - Root/docs duplicate documents collapsed; the stale TRD in docs/ replaced with
   the accurate root copy.
 - CONTRIBUTING, issue and PR templates, CodeQL workflow, dependabot for actions.
 
 Verified: lint clean, tsc clean, 50 tests pass, production build succeeds.
+
+### 2026-09-04 - Closing the open ledger
+
+The build ledger had 22 findings still open. Seven of them turned out to be
+already fixed by later work and were closed on inspection rather than rebuilt:
+batch search and sort, OCR pre-processing, the item-row grid, the root/docs
+duplicate documents, the contributing guide and templates, CodeQL, and the
+README's four diagrams.
+
+Truth
+- "2 x 400g BEANS" parsed as one 400 g tin. extractQuantity rejected any leading
+  number not followed by a letter, so an explicit multiplier in front of a pack
+  size was dropped and the line reported half its real mass.
+- A receipt with no store name on it took the name of the uploaded image file.
+  Two code paths did this; both now leave it null and the UI offers a rename.
+- Match confidence rendered as "70% match" / "85% match". Those are the two
+  source constants with a percent sign attached, not a measurement. Items name
+  the database that answered instead.
+- Allergens and additives were already in the Open Food Facts payload being
+  parsed for nutriments, and were being thrown away.
+- A lookup that failed because a source was down was cached as "not found" for
+  the full 30-day TTL. One Open Food Facts 503 during this session marked all
+  twelve demo items unmatched and kept them that way while USDA had answers for
+  every one. Reachability and emptiness are now different things.
+
+Product
+- Multi-photo scans: a long till roll goes in as several photos, read in
+  sequence on the device and submitted as one shop.
+- Drag-to-crop on each photo before OCR.
+- Manual food search across both sources for an item the OCR garbled, plus a
+  retry that goes past a cached miss.
+- Buy-again list on the batch page, from items bought in more than one previous
+  shop. Bought once is not a habit.
+
+Design
+- One icon set replacing inline SVG copied between components and the literal
+  "→" and "✕" characters a screen reader announces as "rightwards arrow".
+- Button primitive; the variant had been a hand-typed class string in 52 places
+  across 17 files.
+
+Infrastructure
+- onRequestError gives every server error one structured line, with an optional
+  ERROR_WEBHOOK_URL to forward it. Vercel Analytics for page counts.
+- Dependency review workflow alongside CodeQL; code of conduct.
+- The Supabase project was paused, not deleted. Restoring it kept DATABASE_URL
+  valid, so no credential rotation was needed. Both pending migrations applied.
+- vitest was loading .env, so the lookup cache tests were reading from and
+  writing to the production database. They passed only because it was
+  unreachable; restoring it turned one red and left six fixture rows in
+  FoodMatch. Tests now run with DATABASE_URL empty.
+
+Still open: README screenshots of the scan and batch views, which sit behind
+Google sign-in and need a signed-in capture.
+
+Verified: lint clean, tsc clean, 57 tests pass, production build succeeds,
+/demo reads 12 of 12 against the live sources.

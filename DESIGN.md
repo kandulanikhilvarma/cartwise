@@ -78,10 +78,31 @@ resolves to #e0a25c at 7.50:1 and is used directly.
   weighed, the page says so beside the total.
 - Every interactive control names its action in the product's plain voice.
 
+## Components
+
+- `Button` / `buttonClass` own every button-shaped thing. Variant and size are
+  props; a link or anchor takes the class string, because one component
+  swallowing `<button>`, `<a>` and `<Link>` costs a polymorphic `as` prop that
+  three call sites do not justify.
+- `Icon` holds the icon set: a 20-unit box, `currentColor`, 1.7 stroke, round
+  caps, `aria-hidden`. Every icon is decorative and the label belongs to
+  whatever contains it.
+- `src/app/globals.test.ts` fails the build if a static `className` names a rule
+  that does not exist in `globals.css`. It only sees string literals, so
+  template-literal class names still need eyes.
+
 ## Verified
 
 Structure, image loads, console and the mechanical detector pass. The signed-out
 `/demo` route renders the full read from a real receipt and is the fastest way to
-review the system end to end without an account. A pixel-level side-by-side
-screenshot pass across every route, both themes, still hasn't been run — the
-in-app browser pane could not composite frames in either session.
+review the system end to end without an account; it currently reads 12 of 12
+against the live sources.
+
+Two `transition: width` findings on `.progress-fill` and `.meter-fill` carry an
+inline `impeccable-disable-next-line`. `transform: scaleX()` would stretch the
+999px cap on the meter fill into an ellipse, and both are single small elements
+inside `overflow: hidden` tracks, stepped by coarse callbacks rather than per
+frame. The waiver is on the two lines, not on the rule.
+
+A pixel-level side-by-side screenshot pass across every route, both themes,
+still hasn't been run.
