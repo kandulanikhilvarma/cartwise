@@ -13,6 +13,18 @@ type BarcodeProduct = {
   sodiumMg: number
 }
 
+const FIGURES = [
+  { key: 'caloriesKcal', label: 'Calories', unit: 'kcal' },
+  { key: 'proteinG', label: 'Protein', unit: 'g' },
+  { key: 'carbsG', label: 'Carbs', unit: 'g' },
+  { key: 'fatG', label: 'Fat', unit: 'g' },
+  { key: 'sodiumMg', label: 'Sodium', unit: 'mg' },
+] as const satisfies ReadonlyArray<{
+  key: keyof BarcodeProduct
+  label: string
+  unit: string
+}>
+
 export function BarcodeLookup() {
   const [code, setCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -76,28 +88,17 @@ export function BarcodeLookup() {
           <h2>{product.productName}</h2>
           <p className="fine-print">{product.brand ?? 'No brand listed'}</p>
           <p className="fine-print">Values are per 100 g.</p>
-          <div className="nutrition-grid">
-            <article className="nutrition-card tone-good">
-              <strong>{product.caloriesKcal}</strong>
-              <span>Calories (kcal)</span>
-            </article>
-            <article className="nutrition-card tone-neutral">
-              <strong>{product.proteinG}</strong>
-              <span>Protein (g)</span>
-            </article>
-            <article className="nutrition-card tone-neutral">
-              <strong>{product.carbsG}</strong>
-              <span>Carbs (g)</span>
-            </article>
-            <article className="nutrition-card tone-neutral">
-              <strong>{product.fatG}</strong>
-              <span>Fat (g)</span>
-            </article>
-            <article className="nutrition-card tone-warning">
-              <strong>{product.sodiumMg}</strong>
-              <span>Sodium (mg)</span>
-            </article>
-          </div>
+          <dl className="figure-grid">
+            {FIGURES.map((figure) => (
+              <div className="figure" key={figure.key}>
+                <dt>{figure.label}</dt>
+                <dd>
+                  {product[figure.key]}
+                  <span className="figure-unit">{figure.unit}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
       ) : null}
     </section>
