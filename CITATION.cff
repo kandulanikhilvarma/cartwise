@@ -7,8 +7,8 @@ authors:
     email: kandulanikhilvarma@gmail.com
     website: "https://kandula.studio"
 type: software
-url: "https://github.com/kandulanikhilvarma/foodlens"
-repository-code: "https://github.com/kandulanikhilvarma/foodlens"
+url: "https://github.com/kandulanikhilvarma/cartwise"
+repository-code: "https://github.com/kandulanikhilvarma/cartwise"
 license: Apache-2.0
 keywords:
   - nutrition

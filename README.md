@@ -229,8 +229,8 @@ The visual system is recorded in [DESIGN.md](DESIGN.md) — warm paper ground, o
 ## Getting started
 
 ```bash
-git clone https://github.com/kandulanikhilvarma/foodlens.git
-cd foodlens
+git clone https://github.com/kandulanikhilvarma/cartwise.git
+cd cartwise
 npm install
 cp .env.example .env      # fill in the values below
 npx prisma migrate dev    # create tables
