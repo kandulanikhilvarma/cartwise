@@ -95,78 +95,110 @@ function isPlausible(match: NutritionMatch): boolean {
 }
 
 /**
- * A source that never answers must not hold the whole receipt open. Any network
- * or timeout failure degrades to "no match", which the UI already shows honestly.
+ * A source that never answers must not hold the whole receipt open, so any
+ * network or timeout failure still degrades to "no match" for this request.
+ *
+ * `reached` is the part that matters later: a source that answered "I have
+ * nothing" is a fact worth caching, while a source that was down is not. They
+ * used to be the same value, so one Open Food Facts outage wrote "not found"
+ * for every item on the receipt and the cache repeated it for thirty days.
  */
-async function fetchJson(url: string, headers?: Record<string, string>): Promise<unknown | null> {
+type Answer = { reached: boolean; data: unknown }
+
+const UNREACHED: Answer = { reached: false, data: null }
+
+async function fetchJson(url: string, headers?: Record<string, string>): Promise<Answer> {
   try {
     const response = await fetch(url, {
       cache: 'no-store',
       headers,
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
-    if (!response.ok) return null
-    return await response.json()
+    // 4xx is the source answering about this query; 5xx is the source failing.
+    if (response.status >= 500) return UNREACHED
+    if (!response.ok) return { reached: true, data: null }
+    return { reached: true, data: await response.json() }
   } catch {
-    return null
+    return UNREACHED
   }
 }
 
-async function fromUsda(name: string): Promise<NutritionMatch | null> {
+type SourceResult = { reached: boolean; match: NutritionMatch | null }
+
+/**
+ * Whether "nothing found" is worth writing to the cache. Only when every source
+ * actually answered: a miss recorded during an outage would be replayed for the
+ * whole TTL, which is how a failed lookup became permanent.
+ */
+export function shouldRecordMiss(sources: SourceResult[]): boolean {
+  return sources.every((source) => source.reached)
+}
+
+async function fromUsda(name: string): Promise<SourceResult> {
   const apiKey = process.env.USDA_FDC_API_KEY
-  if (!apiKey) return null
+  // No key is not an outage, it is a deployment without USDA configured.
+  if (!apiKey) return { reached: true, match: null }
 
   const url =
     `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}` +
     `&query=${encodeURIComponent(name)}&pageSize=1&dataType=Foundation,SR%20Legacy`
 
-  const payload = (await fetchJson(url)) as {
+  const answer = await fetchJson(url)
+  if (!answer.reached) return { reached: false, match: null }
+
+  const payload = answer.data as {
     foods?: Array<{ foodNutrients?: Array<{ nutrientNumber?: string; value?: number }> }>
   } | null
 
   const nutrients = payload?.foods?.[0]?.foodNutrients
-  if (!nutrients || nutrients.length === 0) return null
+  if (!nutrients || nutrients.length === 0) return { reached: true, match: null }
 
   const pick = (nutrientNumber: string): number =>
     num(nutrients.find((n) => n.nutrientNumber === nutrientNumber)?.value)
 
   const caloriesKcal = pick(USDA_NUTRIENT.energyKcal)
   const proteinG = pick(USDA_NUTRIENT.protein)
-  if (caloriesKcal === 0 && proteinG === 0) return null
+  if (caloriesKcal === 0 && proteinG === 0) return { reached: true, match: null }
 
   return {
-    caloriesKcal,
-    proteinG,
-    carbsG: pick(USDA_NUTRIENT.carbs),
-    fatG: pick(USDA_NUTRIENT.fat),
-    sugarG: pick(USDA_NUTRIENT.sugar),
-    fiberG: pick(USDA_NUTRIENT.fiber),
-    sodiumMg: pick(USDA_NUTRIENT.sodiumMg),
-    vitaminDMcg: pick(USDA_NUTRIENT.vitaminDMcg),
-    ironMg: pick(USDA_NUTRIENT.ironMg),
-    calciumMg: pick(USDA_NUTRIENT.calciumMg),
-    matchConfidence: 0.85,
-    unit: '100g',
-    source: 'usda',
-    // USDA Foundation foods carry no processing grade, allergen tags or
-    // additive list; the name is all there is.
-    foodGroup: classifyFoodGroup(name),
-    novaGroup: null,
-    nutriScore: null,
-    allergens: [],
-    additives: [],
+    reached: true,
+    match: {
+      caloriesKcal,
+      proteinG,
+      carbsG: pick(USDA_NUTRIENT.carbs),
+      fatG: pick(USDA_NUTRIENT.fat),
+      sugarG: pick(USDA_NUTRIENT.sugar),
+      fiberG: pick(USDA_NUTRIENT.fiber),
+      sodiumMg: pick(USDA_NUTRIENT.sodiumMg),
+      vitaminDMcg: pick(USDA_NUTRIENT.vitaminDMcg),
+      ironMg: pick(USDA_NUTRIENT.ironMg),
+      calciumMg: pick(USDA_NUTRIENT.calciumMg),
+      matchConfidence: 0.85,
+      unit: '100g',
+      source: 'usda',
+      // USDA Foundation foods carry no processing grade, allergen tags or
+      // additive list; the name is all there is.
+      foodGroup: classifyFoodGroup(name),
+      novaGroup: null,
+      nutriScore: null,
+      allergens: [],
+      additives: [],
+    },
   }
 }
 
-async function fromOpenFoodFacts(name: string): Promise<NutritionMatch | null> {
+async function fromOpenFoodFacts(name: string): Promise<SourceResult> {
   const url =
     `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}` +
     `&search_simple=1&action=process&json=1&page_size=1`
 
-  const payload = (await fetchJson(url, {
+  const answer = await fetchJson(url, {
     'user-agent': 'Cartwise/1.0',
     accept: 'application/json',
-  })) as {
+  })
+  if (!answer.reached) return { reached: false, match: null }
+
+  const payload = answer.data as {
     products?: Array<{
       nutriments?: Record<string, unknown>
       nova_group?: unknown
@@ -179,12 +211,12 @@ async function fromOpenFoodFacts(name: string): Promise<NutritionMatch | null> {
 
   const product = payload?.products?.[0]
   const nutriments = product?.nutriments
-  if (!nutriments) return null
+  if (!nutriments) return { reached: true, match: null }
 
   const g = (key: string): number => num(nutriments[key])
   const caloriesKcal = g('energy-kcal_100g') || Math.round(g('energy_100g') / 4.184)
   const proteinG = g('proteins_100g')
-  if (caloriesKcal === 0 && proteinG === 0) return null
+  if (caloriesKcal === 0 && proteinG === 0) return { reached: true, match: null }
 
   const categories = Array.isArray(product?.categories_tags)
     ? (product.categories_tags as unknown[]).filter((tag): tag is string => typeof tag === 'string')
@@ -193,24 +225,27 @@ async function fromOpenFoodFacts(name: string): Promise<NutritionMatch | null> {
   const grade = typeof product?.nutriscore_grade === 'string' ? product.nutriscore_grade : null
 
   return {
-    caloriesKcal,
-    proteinG,
-    carbsG: g('carbohydrates_100g'),
-    fatG: g('fat_100g'),
-    sugarG: g('sugars_100g'),
-    fiberG: g('fiber_100g'),
-    sodiumMg: round2(g('sodium_100g') * 1000), // g -> mg
-    vitaminDMcg: round2(g('vitamin-d_100g') * 1_000_000), // g -> µg
-    ironMg: round2(g('iron_100g') * 1000), // g -> mg
-    calciumMg: round2(g('calcium_100g') * 1000), // g -> mg
-    matchConfidence: 0.7,
-    unit: '100g',
-    source: 'off',
-    foodGroup: foodGroupFromOffCategories(categories) ?? classifyFoodGroup(name),
-    novaGroup: Number.isInteger(nova) && nova >= 1 && nova <= 4 ? nova : null,
-    nutriScore: grade && /^[a-e]$/i.test(grade) ? grade.toLowerCase() : null,
-    allergens: readTags(product?.allergens_tags),
-    additives: readTags(product?.additives_tags),
+    reached: true,
+    match: {
+      caloriesKcal,
+      proteinG,
+      carbsG: g('carbohydrates_100g'),
+      fatG: g('fat_100g'),
+      sugarG: g('sugars_100g'),
+      fiberG: g('fiber_100g'),
+      sodiumMg: round2(g('sodium_100g') * 1000), // g -> mg
+      vitaminDMcg: round2(g('vitamin-d_100g') * 1_000_000), // g -> µg
+      ironMg: round2(g('iron_100g') * 1000), // g -> mg
+      calciumMg: round2(g('calcium_100g') * 1000), // g -> mg
+      matchConfidence: 0.7,
+      unit: '100g',
+      source: 'off',
+      foodGroup: foodGroupFromOffCategories(categories) ?? classifyFoodGroup(name),
+      novaGroup: Number.isInteger(nova) && nova >= 1 && nova <= 4 ? nova : null,
+      nutriScore: grade && /^[a-e]$/i.test(grade) ? grade.toLowerCase() : null,
+      allergens: readTags(product?.allergens_tags),
+      additives: readTags(product?.additives_tags),
+    },
   }
 }
 
@@ -330,11 +365,18 @@ export async function lookupNutrition(
     }
   }
 
-  const found = (await fromUsda(key)) ?? (await fromOpenFoodFacts(key))
+  const usda = await fromUsda(key)
+  const off = usda.match ? { reached: true, match: null } : await fromOpenFoodFacts(key)
+
+  const found = usda.match ?? off.match
   const result = found && isPlausible(found) ? found : null
 
   memo.set(key, result)
-  await writeCache(key, result)
+
+  if (result || shouldRecordMiss([usda, off])) {
+    await writeCache(key, result)
+  }
+
   return result
 }
 
@@ -382,7 +424,7 @@ async function searchUsda(query: string): Promise<FoodCandidate[]> {
     `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}` +
     `&query=${encodeURIComponent(query)}&pageSize=${SEARCH_LIMIT}&dataType=Foundation,SR%20Legacy`
 
-  const payload = (await fetchJson(url)) as {
+  const payload = (await fetchJson(url)).data as {
     foods?: Array<{ description?: unknown }>
   } | null
 
@@ -397,10 +439,9 @@ async function searchOpenFoodFacts(query: string): Promise<FoodCandidate[]> {
     `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}` +
     `&search_simple=1&action=process&json=1&page_size=${SEARCH_LIMIT}`
 
-  const payload = (await fetchJson(url, {
-    'user-agent': 'Cartwise/1.0',
-    accept: 'application/json',
-  })) as {
+  const payload = (
+    await fetchJson(url, { 'user-agent': 'Cartwise/1.0', accept: 'application/json' })
+  ).data as {
     products?: Array<{ product_name?: unknown; brands?: unknown }>
   } | null
 

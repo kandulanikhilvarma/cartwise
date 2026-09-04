@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { lookupNutrition } from './food-lookup'
+import { lookupNutrition, shouldRecordMiss } from './food-lookup'
 
 const usdaResponse = {
   foods: [
@@ -100,6 +100,50 @@ describe('lookupNutrition', () => {
     await lookupNutrition('Cheddar Cheese Cache')
     await lookupNutrition('  cheddar cheese cache ')
     expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops asking once a source has answered', async () => {
+    const fetch = mockFetchOnce(usdaResponse)
+    vi.stubGlobal('fetch', fetch)
+
+    // USDA matched, so Open Food Facts is never called for the same name.
+    await lookupNutrition('short circuit food')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns null when a source is unreachable, without inventing a match', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ foods: [] }) })
+      .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetch)
+
+    expect(await lookupNutrition('offline source food')).toBeNull()
+  })
+})
+
+describe('shouldRecordMiss', () => {
+  // A 503 is the source failing, not the source saying it has nothing. Writing
+  // that down cached one Open Food Facts outage as "not found" for every item
+  // on the receipt, for the whole 30-day TTL.
+  it('records a miss only when every source answered', () => {
+    expect(shouldRecordMiss([{ reached: true, match: null }])).toBe(true)
+    expect(
+      shouldRecordMiss([
+        { reached: true, match: null },
+        { reached: true, match: null },
+      ]),
+    ).toBe(true)
+  })
+
+  it('refuses to record a miss when any source was unreachable', () => {
+    expect(
+      shouldRecordMiss([
+        { reached: true, match: null },
+        { reached: false, match: null },
+      ]),
+    ).toBe(false)
+    expect(shouldRecordMiss([{ reached: false, match: null }])).toBe(false)
   })
 })
 
