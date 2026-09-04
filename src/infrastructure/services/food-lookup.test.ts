@@ -102,3 +102,55 @@ describe('lookupNutrition', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('implausible matches', () => {
+  beforeEach(() => {
+    process.env.USDA_FDC_API_KEY = 'test-key'
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('rejects a match whose macros cannot fit in 100 g', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          foods: [
+            {
+              foodNutrients: [
+                { nutrientNumber: '208', value: 400 },
+                { nutrientNumber: '203', value: 80 },
+                { nutrientNumber: '205', value: 80 },
+                { nutrientNumber: '204', value: 80 },
+              ],
+            },
+          ],
+        }),
+      }),
+    )
+    // A wrong match is worse than an honest unmatched item.
+    expect(await lookupNutrition('impossible macro food')).toBeNull()
+  })
+
+  it('rejects an energy value no food can reach', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          foods: [
+            {
+              foodNutrients: [
+                { nutrientNumber: '208', value: 5000 },
+                { nutrientNumber: '203', value: 5 },
+              ],
+            },
+          ],
+        }),
+      }),
+    )
+    expect(await lookupNutrition('impossible energy food')).toBeNull()
+  })
+})

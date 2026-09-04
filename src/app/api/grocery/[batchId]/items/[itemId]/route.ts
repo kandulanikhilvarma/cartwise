@@ -20,11 +20,23 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     productName?: string
     quantity?: number
     unit?: string | null
+    packGrams?: number | null
     consumed?: boolean
   }>(request)
 
   if (!body) {
     return NextResponse.json({ message: 'Invalid request body' }, { status: 400 })
+  }
+
+  if (body.packGrams !== undefined && body.packGrams !== null) {
+    const grams = Number(body.packGrams)
+    if (!Number.isFinite(grams) || grams <= 0 || grams > 50_000) {
+      return NextResponse.json(
+        { message: 'Weight must be between 1 g and 50 kg.' },
+        { status: 400 },
+      )
+    }
+    body.packGrams = grams
   }
 
   const updatedBatch = await updateBatchItem(ownerEmail, batchId, itemId, body)

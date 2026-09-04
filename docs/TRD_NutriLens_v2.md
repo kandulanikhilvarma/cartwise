@@ -49,13 +49,13 @@ Next.js 15 full-stack. One deployable unit. Modular folders = clean future extra
 |---|---|---|
 | Primary | **PostgreSQL** (Neon serverless) | Relational, Prisma-native, free tier |
 | Cache | In-memory Map (Phase 2 → Upstash Redis) | Good enough for v1 |
-| File Storage | **Cloudinary** — temporary only | Receipt images deleted after OCR processing |
+| File Storage | Uploaded file handled in-request | Receipt images are not persisted in v1 |
 
 ### AI / Intelligence
 | Layer | Choice | Note |
 |---|---|---|
-| Receipt OCR | **OpenAI GPT-4o Vision** | Primary OCR; most accurate on messy receipts |
-| Fallback OCR | **Tesseract.js** | Local fallback for clear/simple receipts (cost control) |
+| Receipt OCR | **Tesseract.js** | Local OCR pipeline for receipt text extraction in v1 |
+| Fallback OCR | Browser/file handling only | Keep the receipt path resilient without extra cloud services |
 | Barcode lookup | Open Food Facts API | Free, no key required |
 
 > ❌ Photo food recognition (OpenAI Vision for meals) is Phase 2.
@@ -295,16 +295,14 @@ GOOGLE_CLIENT_SECRET=
 # Database
 DATABASE_URL=          # Neon Postgres
 
-# OpenAI (receipt OCR)
-OPENAI_API_KEY=
-
-# Cloudinary (temp receipt storage)
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-
 # USDA (nutrition data)
 USDA_API_KEY=          # Free at https://fdc.nal.usda.gov/api-guide.html
+
+# Phase 2 (commented out until needed)
+# OPENAI_API_KEY=
+# CLOUDINARY_CLOUD_NAME=
+# CLOUDINARY_API_KEY=
+# CLOUDINARY_API_SECRET=
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -364,10 +362,10 @@ NODE_ENV=development
 
 | Concern | Strategy |
 |---|---|
-| Receipt OCR | Async with polling; show skeleton while processing |
+| Receipt OCR | Async with polling; local OCR parse returns results immediately |
 | Barcode lookup | In-memory Map cache, 24h TTL |
 | Nutrition calc | Client-side pure function (no extra API call) |
-| Images | Cloudinary compressed on upload; deleted post-OCR |
+| Images | Uploaded image processed in-request; not persisted in v1 |
 | DB queries | Prisma select only needed fields; index on `userId + createdAt` |
 
 ---
@@ -377,12 +375,12 @@ NODE_ENV=development
 ```
 Phase 1 (Now): MVP Monolith
   Next.js 15 + Neon + Vercel
-  OpenAI for receipt OCR only
+  Tesseract.js for receipt OCR
   4 features: receipt scan, barcode, nutrition summary, auth
 
 Phase 2 (After retention validated):
   Add: manual food log, photo AI recognition, ingredient intel
-  Add: Claude API for insight generation
+  Add: OpenAI or Claude API for higher-accuracy OCR/insights
   Add: UserProfile table (onboarding collected passively)
   Add: DailyInsight table + background job (Inngest or Trigger.dev)
   Add: Resend for email alerts

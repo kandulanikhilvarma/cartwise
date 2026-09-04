@@ -45,7 +45,6 @@ export default function HomePage() {
           />
           <div className="home-hero-overlay" aria-hidden="true" />
           <div className="home-hero-content">
-            <p className="home-hero-kicker">Receipt → matched items → nutrition read</p>
             <h1>
               Snap your receipt.
               <br />
@@ -59,8 +58,8 @@ export default function HomePage() {
               <a className="button button-primary" href="/scan">
                 Scan a receipt
               </a>
-              <a className="button button-hero-ghost" href="/how-it-works">
-                See how it works
+              <a className="button button-hero-ghost" href="/demo">
+                See it work first
               </a>
             </div>
           </div>
@@ -133,7 +132,10 @@ export default function HomePage() {
                   </div>
                   <span className="signal-tag is-good">Win</span>
                 </div>
-                <p className="signal-demo-foot">Illustrative figures. Your read is built from your own receipt.</p>
+                <p className="signal-demo-foot">
+                  Shaped like a real read, with stand-in numbers.{' '}
+                  <a href="/demo">Run it on an actual receipt →</a>
+                </p>
               </div>
             </div>
           </section>

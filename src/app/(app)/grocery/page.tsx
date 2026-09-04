@@ -1,6 +1,10 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { auth } from '@/auth'
 import { listBatches } from '@/infrastructure/state/batch-store'
+import { BatchList } from '@/features/grocery/components/BatchList'
+
+export const metadata: Metadata = { title: 'Batches' }
 
 export default async function GroceryPage() {
   const session = await auth()
@@ -20,26 +24,7 @@ export default async function GroceryPage() {
       </div>
 
       {batches.length ? (
-        <div className="batch-list">
-          {batches.map((batch) => {
-            const matched = batch.items.filter((item) => item.matchConfidence != null).length
-            return (
-              <Link className="batch-card" href={`/grocery/${batch.id}`} key={batch.id}>
-                <div>
-                  <strong>{batch.storeName ?? 'Grocery batch'}</strong>
-                  <p>
-                    {batch.ocrStatus === 'processing'
-                      ? 'Still processing…'
-                      : batch.items.length === 0
-                        ? 'No items matched'
-                        : `${batch.items.length} items · ${matched} with nutrition`}
-                  </p>
-                </div>
-                <span aria-hidden="true">→</span>
-              </Link>
-            )
-          })}
-        </div>
+        <BatchList batches={batches} />
       ) : (
         <section className="surface-card empty-state">
           <h2>No batches yet</h2>

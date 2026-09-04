@@ -1,74 +1,77 @@
 import type { GroceryItem } from '@/features/grocery/types'
-import { lookupNutrition } from '@/infrastructure/services/food-lookup'
+import { lookupNutritionMany, normalizeFoodName } from '@/infrastructure/services/food-lookup'
 import {
-  cleanLine,
-  deriveProductName,
   deriveStoreName,
-  extractQuantity,
-  hasRealName,
-  isNoiseLine,
-  looksLikeReceipt,
-  toTitleCase,
+  detectCurrency,
+  extractTotalSpend,
+  parseItemLine,
+  parseReceiptDate,
 } from './receipt-parse'
 
-type ReceiptParseResult = {
+export type ReceiptParseResult = {
   storeName: string | null
+  purchasedAt: Date | null
+  totalSpend: number | null
+  currency: string | null
+  itemsTruncated: boolean
   items: GroceryItem[]
 }
 
-const MAX_ITEMS = 12
+// A weekly shop runs to about 40 lines. The cap exists to bound the request,
+// not to hide items, so crossing it is reported rather than silently applied.
+const MAX_ITEMS = 60
 
-async function buildItems(lines: string[]): Promise<GroceryItem[]> {
-  const items: GroceryItem[] = []
+async function buildItems(lines: string[]): Promise<{ items: GroceryItem[]; truncated: boolean }> {
+  const parsed: Array<ReturnType<typeof parseItemLine> & object> = []
   const seen = new Set<string>()
+  let truncated = false
 
   for (const rawLine of lines) {
-    if (items.length >= MAX_ITEMS) {
+    const line = parseItemLine(rawLine)
+    if (!line) continue
+
+    const key = line.productName.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    if (parsed.length >= MAX_ITEMS) {
+      truncated = true
       break
     }
+    parsed.push(line)
+  }
 
-    const line = cleanLine(rawLine)
-    if (isNoiseLine(line)) {
-      continue
-    }
+  const matches = await lookupNutritionMany(parsed.map((line) => line.productName))
 
-    const rawName = deriveProductName(line)
-    if (!hasRealName(rawName)) {
-      // Line was only codes/prices, not a nameable product — skip it.
-      continue
-    }
-    const productName = toTitleCase(rawName)
-    const normalizedKey = productName.toLowerCase()
-    if (seen.has(normalizedKey)) {
-      continue
-    }
-    seen.add(normalizedKey)
-
-    const quantity = extractQuantity(line)
-    // Real per-100g nutrition from USDA/OFF. No match -> null fields; the item
-    // is surfaced as "unmatched" rather than backfilled with fake numbers.
-    const match = await lookupNutrition(productName)
-
-    items.push({
-      id: `item-${Date.now()}-${items.length}`,
-      productName,
-      quantity,
+  const items = parsed.map((line, index) => {
+    const match = matches.get(normalizeFoodName(line.productName)) ?? null
+    return {
+      id: `item-${Date.now()}-${index}`,
+      productName: line.productName,
+      quantity: line.quantity,
+      packGrams: line.packGrams,
+      linePrice: line.linePrice,
       unit: match?.unit ?? null,
       matchConfidence: match?.matchConfidence ?? null,
+      foodGroup: match?.foodGroup ?? null,
+      novaGroup: match?.novaGroup ?? null,
+      nutriScore: match?.nutriScore ?? null,
       caloriesKcal: match?.caloriesKcal ?? null,
       proteinG: match?.proteinG ?? null,
       carbsG: match?.carbsG ?? null,
       fatG: match?.fatG ?? null,
+      sugarG: match?.sugarG ?? null,
+      fiberG: match?.fiberG ?? null,
       sodiumMg: match?.sodiumMg ?? null,
       vitaminDMcg: match?.vitaminDMcg ?? null,
       ironMg: match?.ironMg ?? null,
       calciumMg: match?.calciumMg ?? null,
       consumed: false,
       consumedAt: null,
-    })
-  }
+    } satisfies GroceryItem
+  })
 
-  return items
+  return { items, truncated }
 }
 
 /**
@@ -77,8 +80,14 @@ async function buildItems(lines: string[]): Promise<GroceryItem[]> {
  * fast, serverless-safe request with no background job.
  */
 export async function parseReceiptLines(lines: string[]): Promise<ReceiptParseResult> {
+  const { items, truncated } = await buildItems(lines)
+
   return {
     storeName: deriveStoreName(lines),
-    items: await buildItems(lines),
+    purchasedAt: parseReceiptDate(lines),
+    totalSpend: extractTotalSpend(lines),
+    currency: detectCurrency(lines),
+    itemsTruncated: truncated,
+    items,
   }
 }

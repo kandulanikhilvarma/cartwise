@@ -5,6 +5,7 @@ import { SignOutButton } from '@/features/auth/components/SignOutButton'
 
 const links = [
   { href: '/how-it-works', label: 'How it works' },
+  { href: '/demo', label: 'See it work' },
   { href: '/about', label: 'About' },
   { href: '/faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact' },
@@ -31,7 +32,7 @@ export async function MarketingNav() {
         {user ? (
           <>
             {firstName ? <span className="nav-user">Hi, {firstName}</span> : null}
-            <Link className="button button-primary" href="/scan">
+            <Link className="button button-primary" href="/home">
               Open Cartwise
             </Link>
             <SignOutButton />

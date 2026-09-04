@@ -131,3 +131,51 @@ Keep a short, readable record of what changed, why it changed, and how to reprod
 - If a change adds UI, note the component names.
 - If a change affects data flow, note the store or service used.
 - Keep each entry short enough that someone can reproduce the change without reading the whole codebase.
+
+### 2026-09-03 - Audit pass: truthful totals, design system, repo
+
+Findings came from a full read of the shipped build (74 logged). The headline
+defect: batch totals summed per-100g figures across items and compared them to a
+daily RDA, so every reported number described "N arbitrary 100 g portions".
+
+Data and correctness
+- Added packGrams, linePrice, receipt date, printed total, currency and a
+  truncation flag to the parse; totals now scale by real mass and exclude
+  unweighed items rather than guessing.
+- Two parser bugs found by running a real receipt through the new /demo route:
+  stripCodes removed any trailing word of 6+ letters ("BABY SPINACH" -> "Baby"),
+  and lines with no price or weight (shop name, street address) parsed as food.
+- The printed price is the extended line total, so it is no longer multiplied by
+  quantity. Batch spend now equals the receipt total.
+- A shop is measured against a week for the household, not one person's day.
+- Renaming an item re-matches its nutrition, which the UI already claimed.
+- Matches that are impossible per 100 g are discarded.
+- Nutrition cache moved from a per-process Map into Postgres; lookups run five
+  at a time with a 6s timeout instead of serially.
+- Item cap raised from 12 to 60 and surfaced when crossed.
+
+Product
+- Dashboard, settings (profile, household, units, account deletion), batch
+  search/sort/rename/delete, CSV export, undo on item removal, buy-again list.
+- Signed-out /demo running the real pipeline on a fixed sample receipt.
+- OCR pre-processing (grayscale, contrast stretch, downscale) before Tesseract.
+- PWA manifest, icon, robots, sitemap, OG image, security headers.
+
+Design
+- Full token layer: type scale, space scale, semantic signals, chart palette,
+  and --accent-text for marmalade, which measured 3.66:1 on paper and failed the
+  contrast floor everywhere it was used at small sizes.
+- Fragment Mono plus tabular figures; Hanken Grotesk 500/600/700.
+- Theme toggle, meters, skeletons, toast, item chips.
+- Marketing nav wraps on mobile instead of disappearing under 900px.
+- Removed dead CSS (figure-reveal, .home-hero-figure, .home-hero-tag) and the
+  hero kicker DESIGN.md forbade; DESIGN.md rewritten to match what ships.
+
+Repo
+- README rebuilt around four validated Mermaid diagrams; clone URL corrected
+  from cartwise to foodlens, which had made the quickstart fail.
+- Root/docs duplicate documents collapsed; the stale TRD in docs/ replaced with
+  the accurate root copy.
+- CONTRIBUTING, issue and PR templates, CodeQL workflow, dependabot for actions.
+
+Verified: lint clean, tsc clean, 50 tests pass, production build succeeds.
