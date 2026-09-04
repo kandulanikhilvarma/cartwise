@@ -435,6 +435,93 @@ export async function listBatches(ownerEmail: string): Promise<GroceryBatch[]> {
   return batches.map(toGroceryBatch)
 }
 
+export type FrequentItem = {
+  productName: string
+  packGrams: number | null
+  timesBought: number
+}
+
+// Enough history to see a pattern, few enough to stay one query.
+const FREQUENT_SCAN_LIMIT = 500
+
+function rankFrequent(
+  rows: Array<{ productName: string; packGrams: number | null }>,
+  excludeNames: Set<string>,
+  limit: number,
+): FrequentItem[] {
+  const tally = new Map<string, FrequentItem>()
+
+  for (const row of rows) {
+    const key = row.productName.trim().toLowerCase()
+    if (!key || excludeNames.has(key)) continue
+
+    const existing = tally.get(key)
+    if (existing) {
+      existing.timesBought += 1
+      // Rows arrive newest first, so the first weight seen is the current one.
+      existing.packGrams = existing.packGrams ?? row.packGrams
+    } else {
+      tally.set(key, {
+        productName: row.productName,
+        packGrams: row.packGrams,
+        timesBought: 1,
+      })
+    }
+  }
+
+  return Array.from(tally.values())
+    .filter((item) => item.timesBought > 1)
+    .sort((a, b) => b.timesBought - a.timesBought || a.productName.localeCompare(b.productName))
+    .slice(0, limit)
+}
+
+/**
+ * What this shopper actually buys again, from their own past shops. Anything
+ * bought once is not a habit, so single purchases are left out — a "buy again"
+ * list that is really "everything you have ever bought" is a receipt archive
+ * with a different heading.
+ */
+export async function listFrequentItems(
+  ownerEmail: string,
+  { excludeBatchId, limit = 10 }: { excludeBatchId?: string; limit?: number } = {},
+): Promise<FrequentItem[]> {
+  const exclude = new Set<string>()
+
+  if (!hasDatabase()) {
+    const rows: Array<{ productName: string; packGrams: number | null }> = []
+    for (const batch of memoryListBatches()) {
+      for (const item of batch.items) {
+        if (batch.id === excludeBatchId) {
+          exclude.add(item.productName.trim().toLowerCase())
+          continue
+        }
+        rows.push({ productName: item.productName, packGrams: item.packGrams ?? null })
+      }
+    }
+    return rankFrequent(rows, exclude, limit)
+  }
+
+  if (excludeBatchId) {
+    const current = await prisma.groceryItem.findMany({
+      where: { batchId: excludeBatchId, batch: { user: { email: ownerEmail } } },
+      select: { productName: true },
+    })
+    for (const row of current) exclude.add(row.productName.trim().toLowerCase())
+  }
+
+  const rows = await prisma.groceryItem.findMany({
+    where: {
+      batch: { user: { email: ownerEmail } },
+      ...(excludeBatchId ? { NOT: { batchId: excludeBatchId } } : {}),
+    },
+    select: { productName: true, packGrams: true },
+    orderBy: { batch: { purchasedAt: 'desc' } },
+    take: FREQUENT_SCAN_LIMIT,
+  })
+
+  return rankFrequent(rows, exclude, limit)
+}
+
 export async function renameBatch(
   ownerEmail: string,
   batchId: string,

@@ -3,25 +3,49 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { GroceryBatch } from '@/features/grocery/types'
+import type { GroceryBatch, GroceryItem } from '@/features/grocery/types'
 import type { NutrientProfile } from '@/features/nutrition/lib/rda-constants'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
-import { ocrReceiptToLines } from '@/features/grocery/lib/client-ocr'
+import { ReceiptCropper } from '@/features/grocery/components/ReceiptCropper'
+import { ocrReceiptToLines, type CropRect } from '@/features/grocery/lib/client-ocr'
 
-type Stage = 'idle' | 'preparing' | 'reading' | 'matching'
+type Stage = 'idle' | 'reading' | 'matching'
 
 const STAGE_COPY: Record<Exclude<Stage, 'idle'>, string> = {
-  preparing: 'Sharpening the photo on your device.',
   reading: 'Reading the receipt on your device.',
   matching: 'Matching items to nutrition data.',
+}
+
+// A long till roll photographed in sections. More than a handful is a sign the
+// photos are of different shops, which belong in different batches.
+const MAX_PAGES = 5
+
+const SOURCE_LABEL: Record<string, string> = {
+  usda: 'USDA',
+  off: 'Open Food Facts',
+}
+
+type Page = {
+  id: string
+  file: File
+  url: string
+  crop: CropRect | null
+}
+
+function matchNote(item: GroceryItem): string {
+  if (item.matchConfidence == null) {
+    return 'No nutrition match — open the batch to fix the name or retry.'
+  }
+  const source = item.matchSource ? SOURCE_LABEL[item.matchSource] : null
+  return source ? `Nutrition from ${source}.` : 'Nutrition matched.'
 }
 
 export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null }) {
   const router = useRouter()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [file, setFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const pagesRef = useRef<Page[]>([])
+  const [pages, setPages] = useState<Page[]>([])
   const [dragging, setDragging] = useState(false)
   const [stage, setStage] = useState<Stage>('idle')
   const [progress, setProgress] = useState(0)
@@ -32,40 +56,79 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
   const items = batch?.items ?? []
   const matchedCount = items.filter((item) => item.matchConfidence != null).length
 
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null)
-      return
-    }
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [file])
+  pagesRef.current = pages
 
-  function chooseFile(next: File | null) {
-    if (next && !next.type.startsWith('image/')) {
-      setError('That file isn’t an image. Use a photo of your receipt.')
+  // Object URLs outlive the render that made them, so they are released when the
+  // page is dropped or the component goes away, not on every state change.
+  useEffect(() => {
+    return () => {
+      for (const page of pagesRef.current) URL.revokeObjectURL(page.url)
+    }
+  }, [])
+
+  function addFiles(incoming: FileList | null) {
+    const chosen = Array.from(incoming ?? [])
+    if (chosen.length === 0) return
+
+    if (chosen.some((file) => !file.type.startsWith('image/'))) {
+      setError('Those need to be images. Use photos of your receipt.')
       return
     }
+
     setError(null)
     setBatch(null)
-    setFile(next)
+    setPages((current) => {
+      const room = MAX_PAGES - current.length
+      if (room <= 0) {
+        setError(`Cartwise reads up to ${MAX_PAGES} photos in one batch.`)
+        return current
+      }
+      const added = chosen.slice(0, room).map((file) => ({
+        id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+        file,
+        url: URL.createObjectURL(file),
+        crop: null,
+      }))
+      return [...current, ...added]
+    })
+  }
+
+  function removePage(id: string) {
+    setPages((current) => {
+      const target = current.find((page) => page.id === id)
+      if (target) URL.revokeObjectURL(target.url)
+      return current.filter((page) => page.id !== id)
+    })
+    setBatch(null)
+  }
+
+  function setCrop(id: string, crop: CropRect | null) {
+    setPages((current) => current.map((page) => (page.id === id ? { ...page, crop } : page)))
   }
 
   async function handleProcess() {
-    if (!file) {
+    if (pages.length === 0) {
       setError('Choose or take a photo of your receipt first.')
       return
     }
 
     setError(null)
     setBatch(null)
-    setStage('preparing')
+    setStage('reading')
     setProgress(0)
 
     try {
-      setStage('reading')
-      const lines = await ocrReceiptToLines(file, setProgress)
+      const lines: string[] = []
+      for (const [index, page] of pages.entries()) {
+        const pageLines = await ocrReceiptToLines(
+          page.file,
+          // Each photo owns its slice of the bar, so the bar never restarts.
+          (value) => setProgress((index + value) / pages.length),
+          page.crop,
+        )
+        lines.push(...pageLines)
+      }
+
       if (lines.join('').trim().length === 0) {
         throw new Error('Couldn’t read any text. Try a sharper, well-lit photo of the whole receipt.')
       }
@@ -74,7 +137,7 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
       const response = await fetch('/api/grocery/receipt', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ lines, fileName: file.name }),
+        body: JSON.stringify({ lines }),
       })
 
       if (!response.ok) {
@@ -105,31 +168,70 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
           accept="image/*"
           capture="environment"
           hidden
-          onChange={(event) => chooseFile(event.target.files?.[0] ?? null)}
+          onChange={(event) => {
+            addFiles(event.target.files)
+            event.target.value = ''
+          }}
         />
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
+          multiple
           hidden
-          onChange={(event) => chooseFile(event.target.files?.[0] ?? null)}
+          onChange={(event) => {
+            addFiles(event.target.files)
+            event.target.value = ''
+          }}
         />
 
-        {file && previewUrl ? (
-          <div className="upload-preview">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={previewUrl} alt="Selected receipt preview" />
-            <div className="upload-preview-meta">
-              <strong>{file.name}</strong>
-              <button
-                className="button button-secondary"
-                type="button"
-                disabled={isBusy}
-                onClick={() => setFile(null)}
-              >
-                Change
-              </button>
-            </div>
+        {pages.length > 0 ? (
+          <div className="page-list">
+            {pages.map((page, index) => (
+              <div className="page-card" key={page.id}>
+                <div className="page-card-head">
+                  <strong>
+                    {pages.length > 1 ? `Photo ${index + 1} of ${pages.length}` : page.file.name}
+                  </strong>
+                  <button
+                    className="button button-secondary button-small"
+                    disabled={isBusy}
+                    onClick={() => removePage(page.id)}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <ReceiptCropper
+                  alt={`Receipt photo ${index + 1}`}
+                  crop={page.crop}
+                  disabled={isBusy}
+                  onChange={(crop) => setCrop(page.id, crop)}
+                  src={page.url}
+                />
+              </div>
+            ))}
+
+            {pages.length < MAX_PAGES ? (
+              <div className="upload-drop-actions">
+                <button
+                  className="button button-secondary"
+                  disabled={isBusy}
+                  onClick={() => cameraInputRef.current?.click()}
+                  type="button"
+                >
+                  Photograph the next part
+                </button>
+                <button
+                  className="button button-secondary"
+                  disabled={isBusy}
+                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                >
+                  Add another image
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div
@@ -142,11 +244,12 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
             onDrop={(event) => {
               event.preventDefault()
               setDragging(false)
-              chooseFile(event.dataTransfer.files?.[0] ?? null)
+              addFiles(event.dataTransfer.files)
             }}
           >
             <p className="upload-drop-hint">
-              Lay the receipt flat, fill the frame, and keep the whole strip in shot.
+              Lay the receipt flat and fill the frame. A long till roll can go in as several
+              photos — they are read as one shop.
             </p>
             <div className="upload-drop-actions">
               <button className="button button-primary" type="button" onClick={() => cameraInputRef.current?.click()}>
@@ -161,16 +264,16 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
 
         <button
           className="button button-primary upload-process"
-          disabled={isBusy || !file}
+          disabled={isBusy || pages.length === 0}
           type="button"
           onClick={handleProcess}
         >
-          {stage === 'preparing'
-            ? 'Preparing the photo…'
-            : stage === 'reading'
-              ? `Reading receipt… ${Math.round(progress * 100)}%`
-              : stage === 'matching'
-                ? 'Matching nutrition…'
+          {stage === 'reading'
+            ? `Reading receipt… ${Math.round(progress * 100)}%`
+            : stage === 'matching'
+              ? 'Matching nutrition…'
+              : pages.length > 1
+                ? `Process ${pages.length} photos`
                 : 'Process receipt'}
         </button>
 
@@ -183,8 +286,8 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
         <p aria-live="polite" className="sr-status">
           {isBusy
             ? STAGE_COPY[stage]
-            : file
-              ? 'Ready to process.'
+            : pages.length > 0
+              ? `Ready to process ${pages.length} ${pages.length === 1 ? 'photo' : 'photos'}.`
               : 'No receipt selected yet.'}
         </p>
         {error ? (
@@ -223,13 +326,7 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
                       {item.quantity} × {item.packGrams ? `${item.packGrams} g` : 'unknown weight'}
                       {item.linePrice != null ? ` · ${item.linePrice.toFixed(2)}` : ''}
                     </p>
-                    {item.matchConfidence != null ? (
-                      <p className="fine-print num">
-                        Match confidence: {Math.round(item.matchConfidence * 100)}%
-                      </p>
-                    ) : (
-                      <p className="fine-print">No nutrition match — open the batch to fix the name.</p>
-                    )}
+                    <p className="fine-print">{matchNote(item)}</p>
                   </article>
                 ))}
               </div>

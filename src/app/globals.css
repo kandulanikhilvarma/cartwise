@@ -1146,6 +1146,74 @@ td.num,
   width: 100%;
 }
 
+/* One card per photo of the same till roll. */
+.page-list {
+  display: grid;
+  gap: var(--s-3);
+}
+.page-card {
+  display: grid;
+  gap: var(--s-2);
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.page-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+.page-card-head strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cropper {
+  display: grid;
+  gap: 8px;
+}
+.cropper-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: crosshair;
+  touch-action: none;
+}
+.cropper-frame img {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  user-select: none;
+}
+.cropper-box {
+  position: absolute;
+  border: 2px solid var(--green);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  pointer-events: none;
+}
+.cropper-hint {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+}
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--green-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Progress reads as a filling bar behind the label, not a spinner beside it. */
 .progress-track {
   height: 4px;
@@ -1544,6 +1612,77 @@ td.num,
   color: var(--signal-watch-text);
   border-color: color-mix(in srgb, var(--signal-watch) 45%, transparent);
 }
+/* Items this shopper actually repeats, offered as one tap each. */
+.buy-again {
+  display: grid;
+  gap: 8px;
+  margin-top: var(--s-3);
+}
+.buy-again-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.buy-again-chip {
+  display: grid;
+  gap: 1px;
+  text-align: left;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.buy-again-chip:hover:not(:disabled),
+.buy-again-chip:focus-visible {
+  border-color: var(--green);
+}
+.buy-again-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Correcting a garbled item by picking a real product, rather than guessing at
+   a spelling the OCR already lost. */
+.food-search {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.food-search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.food-search-result {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.food-search-result:hover,
+.food-search-result:focus-visible {
+  border-color: var(--line-strong);
+}
+
 .item-actions {
   display: flex;
   flex-wrap: wrap;

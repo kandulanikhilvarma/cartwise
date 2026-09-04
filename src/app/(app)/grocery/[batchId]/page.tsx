@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { auth } from '@/auth'
-import { getBatch, getProfile } from '@/infrastructure/state/batch-store'
+import { getBatch, getProfile, listFrequentItems } from '@/infrastructure/state/batch-store'
 import { GroceryItemList } from '@/features/grocery/components/GroceryItemList'
 import { BatchHeader } from '@/features/grocery/components/BatchHeader'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
@@ -21,9 +21,10 @@ export default async function BatchPage({ params }: BatchPageProps) {
     notFound()
   }
 
-  const [batch, profile] = await Promise.all([
+  const [batch, profile, frequent] = await Promise.all([
     getBatch(ownerEmail, batchId),
     getProfile(ownerEmail),
+    listFrequentItems(ownerEmail, { excludeBatchId: batchId }),
   ])
 
   if (!batch) {
@@ -55,7 +56,7 @@ export default async function BatchPage({ params }: BatchPageProps) {
         </section>
       ) : null}
 
-      <GroceryItemList batchId={batch.id} items={batch.items} />
+      <GroceryItemList batchId={batch.id} frequent={frequent} items={batch.items} />
     </main>
   )
 }

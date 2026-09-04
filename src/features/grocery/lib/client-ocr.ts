@@ -5,19 +5,46 @@
 // the extra pixels, it just takes longer, and very large canvases fail on iOS.
 const MAX_EDGE = 1800
 
+/** A crop box in fractions of the image, so it survives any display scale. */
+export type CropRect = { x: number; y: number; width: number; height: number }
+
+export const FULL_CROP: CropRect = { x: 0, y: 0, width: 1, height: 1 }
+
+export function isFullCrop(crop?: CropRect | null): boolean {
+  if (!crop) return true
+  return crop.x <= 0.001 && crop.y <= 0.001 && crop.width >= 0.999 && crop.height >= 0.999
+}
+
+function cropPixels(imageWidth: number, imageHeight: number, crop?: CropRect | null) {
+  if (isFullCrop(crop) || !crop) {
+    return { x: 0, y: 0, width: imageWidth, height: imageHeight }
+  }
+  // A box dragged to nothing would produce a zero-size canvas, so it is floored
+  // at a readable slice rather than rejected.
+  const width = Math.max(32, Math.round(crop.width * imageWidth))
+  const height = Math.max(32, Math.round(crop.height * imageHeight))
+  return {
+    x: Math.min(Math.round(crop.x * imageWidth), imageWidth - width),
+    y: Math.min(Math.round(crop.y * imageHeight), imageHeight - height),
+    width,
+    height,
+  }
+}
+
 /**
  * Grayscale, normalise contrast and downscale before recognition. A receipt is
  * black ink on white paper photographed under kitchen light; pushing it back
  * towards that is the cheapest accuracy the pipeline has.
  */
-async function preprocess(file: File): Promise<Blob | File> {
+async function preprocess(file: File, crop?: CropRect | null): Promise<Blob | File> {
   if (typeof document === 'undefined') return file
 
   try {
     const bitmap = await createImageBitmap(file)
-    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height))
-    const width = Math.round(bitmap.width * scale)
-    const height = Math.round(bitmap.height * scale)
+    const source = cropPixels(bitmap.width, bitmap.height, crop)
+    const scale = Math.min(1, MAX_EDGE / Math.max(source.width, source.height))
+    const width = Math.round(source.width * scale)
+    const height = Math.round(source.height * scale)
 
     const canvas = document.createElement('canvas')
     canvas.width = width
@@ -25,7 +52,17 @@ async function preprocess(file: File): Promise<Blob | File> {
     const context = canvas.getContext('2d', { willReadFrequently: true })
     if (!context) return file
 
-    context.drawImage(bitmap, 0, 0, width, height)
+    context.drawImage(
+      bitmap,
+      source.x,
+      source.y,
+      source.width,
+      source.height,
+      0,
+      0,
+      width,
+      height,
+    )
     bitmap.close()
 
     const image = context.getImageData(0, 0, width, height)
@@ -66,8 +103,9 @@ async function preprocess(file: File): Promise<Blob | File> {
 export async function ocrReceiptToLines(
   file: File,
   onProgress?: (progress: number) => void,
+  crop?: CropRect | null,
 ): Promise<string[]> {
-  const prepared = await preprocess(file)
+  const prepared = await preprocess(file, crop)
   const Tesseract = (await import('tesseract.js')).default
   const { data } = await Tesseract.recognize(prepared, 'eng', {
     logger: onProgress

@@ -366,4 +366,83 @@ export async function lookupNutritionMany(
   return results
 }
 
+export type FoodCandidate = {
+  name: string
+  brand: string | null
+  source: 'usda' | 'off'
+}
+
+const SEARCH_LIMIT = 6
+
+async function searchUsda(query: string): Promise<FoodCandidate[]> {
+  const apiKey = process.env.USDA_FDC_API_KEY
+  if (!apiKey) return []
+
+  const url =
+    `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}` +
+    `&query=${encodeURIComponent(query)}&pageSize=${SEARCH_LIMIT}&dataType=Foundation,SR%20Legacy`
+
+  const payload = (await fetchJson(url)) as {
+    foods?: Array<{ description?: unknown }>
+  } | null
+
+  return (payload?.foods ?? [])
+    .map((food) => (typeof food.description === 'string' ? food.description.trim() : ''))
+    .filter(Boolean)
+    .map((name) => ({ name, brand: null, source: 'usda' as const }))
+}
+
+async function searchOpenFoodFacts(query: string): Promise<FoodCandidate[]> {
+  const url =
+    `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}` +
+    `&search_simple=1&action=process&json=1&page_size=${SEARCH_LIMIT}`
+
+  const payload = (await fetchJson(url, {
+    'user-agent': 'Cartwise/1.0',
+    accept: 'application/json',
+  })) as {
+    products?: Array<{ product_name?: unknown; brands?: unknown }>
+  } | null
+
+  return (payload?.products ?? [])
+    .map((product) => ({
+      name: typeof product.product_name === 'string' ? product.product_name.trim() : '',
+      brand:
+        typeof product.brands === 'string' && product.brands.trim()
+          ? (product.brands.split(',')[0]?.trim() ?? null)
+          : null,
+      source: 'off' as const,
+    }))
+    .filter((candidate) => candidate.name.length > 0)
+}
+
+/**
+ * Candidate product names for a free-text query, so an item the receipt garbled
+ * can be corrected by picking rather than by guessing a spelling. Both sources
+ * are asked because they cover different halves of a shop: USDA has raw
+ * ingredients, Open Food Facts has branded packets.
+ */
+export async function searchFoods(query: string): Promise<FoodCandidate[]> {
+  const term = normalize(query)
+  if (term.length < 2) return []
+
+  const [usda, off] = await Promise.all([searchUsda(term), searchOpenFoodFacts(term)])
+
+  const seen = new Set<string>()
+  const merged: FoodCandidate[] = []
+  // Interleaved rather than concatenated: a shop has both kinds of item, and one
+  // source filling the whole list would hide the other.
+  for (let index = 0; index < SEARCH_LIMIT; index += 1) {
+    for (const candidate of [usda[index], off[index]]) {
+      if (!candidate) continue
+      const key = normalize(candidate.name)
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(candidate)
+    }
+  }
+
+  return merged.slice(0, SEARCH_LIMIT * 2)
+}
+
 export { normalize as normalizeFoodName }

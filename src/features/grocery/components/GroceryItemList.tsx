@@ -5,9 +5,17 @@ import { useRouter } from 'next/navigation'
 import type { GroceryItem } from '@/features/grocery/types'
 import { FOOD_GROUP_LABEL, type FoodGroup } from '@/features/nutrition/lib/food-group'
 
+type FrequentItem = {
+  productName: string
+  packGrams: number | null
+  timesBought: number
+}
+
 type GroceryItemListProps = {
   batchId: string
   items: GroceryItem[]
+  /** Items this shopper has bought in more than one previous batch. */
+  frequent?: FrequentItem[]
 }
 
 type Draft = {
@@ -17,6 +25,8 @@ type Draft = {
 }
 
 type Undo = { item: GroceryItem; label: string }
+
+type FoodCandidate = { name: string; brand: string | null; source: string }
 
 function groupLabel(group?: string | null): string | null {
   if (!group) return null
@@ -41,7 +51,7 @@ function titleCase(value: string): string {
   return value.replace(/\b[a-z]/g, (character) => character.toUpperCase())
 }
 
-export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
+export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemListProps) {
   const router = useRouter()
   const [localItems, setLocalItems] = useState(items)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -53,7 +63,12 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [draft, setDraft] = useState<Draft>({ productName: '', quantity: '1', packGrams: '' })
   const [undo, setUndo] = useState<Undo | null>(null)
+  const [searchItemId, setSearchItemId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<FoodCandidate[] | null>(null)
+  const [searching, setSearching] = useState(false)
   const editRef = useRef<HTMLInputElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   const consumedCount = useMemo(
     () => localItems.filter((item) => item.consumed).length,
@@ -92,6 +107,57 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
       return false
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  function openSearch(item: GroceryItem) {
+    setSearchItemId(item.id)
+    setSearchQuery(item.productName)
+    setSearchResults(null)
+    setError(null)
+    requestAnimationFrame(() => searchRef.current?.select())
+  }
+
+  async function runSearch() {
+    const query = searchQuery.trim()
+    if (query.length < 2) {
+      setError('Type at least two characters to search.')
+      return
+    }
+
+    setSearching(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/food-db/search?q=${encodeURIComponent(query)}`)
+      if (!response.ok) throw new Error('Could not reach the food databases.')
+      const payload = (await response.json()) as { results?: FoodCandidate[] }
+      setSearchResults(payload.results ?? [])
+    } catch (searchError) {
+      setError(
+        searchError instanceof Error ? searchError.message : 'Could not reach the food databases.',
+      )
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  async function applyCandidate(itemId: string, candidate: FoodCandidate) {
+    // Renaming is what re-runs the lookup, so picking a candidate is a rename to
+    // the name the source itself uses.
+    const ok = await request(
+      `/api/grocery/${batchId}/items/${itemId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productName: candidate.name }),
+      },
+      `Matched to ${candidate.name}.`,
+      'Could not apply that match.',
+    )
+
+    if (ok) {
+      setSearchItemId(null)
+      setSearchResults(null)
     }
   }
 
@@ -150,6 +216,23 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
       setNewQuantity('1')
       setNewGrams('')
     }
+  }
+
+  function addFrequent(entry: FrequentItem) {
+    void request(
+      `/api/grocery/${batchId}/items`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: entry.productName,
+          quantity: 1,
+          packGrams: entry.packGrams,
+        }),
+      },
+      `${entry.productName} added and matched.`,
+      'Could not add that item.',
+    )
   }
 
   function startEdit(item: GroceryItem) {
@@ -272,6 +355,30 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
         </button>
       </div>
 
+      {frequent.length > 0 ? (
+        <div className="buy-again">
+          <p className="fine-print">
+            You have bought these in more than one previous shop, and they are not in this one yet.
+          </p>
+          <div className="buy-again-row">
+            {frequent.map((entry) => (
+              <button
+                className="buy-again-chip"
+                disabled={isSubmitting}
+                key={entry.productName}
+                onClick={() => addFrequent(entry)}
+                type="button"
+              >
+                <span>{entry.productName}</span>
+                <span className="fine-print num">
+                  {entry.timesBought}×{entry.packGrams ? ` · ${entry.packGrams} g` : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <p aria-live="polite" className="sr-status">
         {status}
       </p>
@@ -358,6 +465,70 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
                       <span className="item-chip">{sourceLabel(item)}</span>
                     )}
                   </div>
+
+                  {searchItemId === item.id ? (
+                    <div className="food-search">
+                      <div className="field-row">
+                        <label className="field">
+                          Search the food databases
+                          <input
+                            ref={searchRef}
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') void runSearch()
+                            }}
+                          />
+                        </label>
+                        <button
+                          className="button button-secondary button-small"
+                          disabled={searching}
+                          onClick={() => void runSearch()}
+                          type="button"
+                        >
+                          {searching ? 'Searching…' : 'Search'}
+                        </button>
+                        <button
+                          className="button button-secondary button-small"
+                          onClick={() => {
+                            setSearchItemId(null)
+                            setSearchResults(null)
+                          }}
+                          type="button"
+                        >
+                          Close
+                        </button>
+                      </div>
+
+                      {searchResults?.length === 0 ? (
+                        <p className="fine-print">
+                          Neither database has anything under that name. Try a plainer word —
+                          “cheddar” rather than a brand and pack size.
+                        </p>
+                      ) : null}
+
+                      {searchResults && searchResults.length > 0 ? (
+                        <ul className="food-search-results">
+                          {searchResults.map((candidate) => (
+                            <li key={`${candidate.source}-${candidate.name}`}>
+                              <button
+                                className="food-search-result"
+                                disabled={isSubmitting}
+                                onClick={() => void applyCandidate(item.id, candidate)}
+                                type="button"
+                              >
+                                <span>{candidate.name}</span>
+                                <span className="fine-print">
+                                  {candidate.brand ? `${candidate.brand} · ` : ''}
+                                  {SOURCE_LABEL[candidate.source] ?? candidate.source}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </>
               )}
             </div>
@@ -370,14 +541,23 @@ export function GroceryItemList({ batchId, items }: GroceryItemListProps) {
                 {item.consumed ? 'Mark not eaten' : 'Mark eaten'}
               </button>
               {item.matchConfidence == null && editingItemId !== item.id ? (
-                <button
-                  className="button button-secondary button-small"
-                  disabled={isSubmitting}
-                  onClick={() => retryMatch(item)}
-                  type="button"
-                >
-                  Try match again
-                </button>
+                <>
+                  <button
+                    className="button button-secondary button-small"
+                    disabled={isSubmitting}
+                    onClick={() => retryMatch(item)}
+                    type="button"
+                  >
+                    Try match again
+                  </button>
+                  <button
+                    className="button button-secondary button-small"
+                    onClick={() => openSearch(item)}
+                    type="button"
+                  >
+                    Search food
+                  </button>
+                </>
               ) : null}
               {editingItemId === item.id ? (
                 <>
