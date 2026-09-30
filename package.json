@@ -29,15 +29,18 @@
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^8.0.0",
     "eslint-config-next": "^15.5.26",
     "prisma": "^5.22.0",
     "typescript": "^5.0.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "postcss": "^8.5.28",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "brace-expansion@<2": "^1.1.21",
+    "brace-expansion@>=3": "^5.0.12",
+    "js-yaml@4": "^4.3.2"
   }
 }
