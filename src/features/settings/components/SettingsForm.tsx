@@ -185,20 +185,7 @@ export function SettingsForm({
               A shop is measured against a week for the whole household.
             </span>
           </label>
-
-          <label className="field">
-            Units
-            <select
-              value={values.units}
-              onChange={(event) =>
-                setValues((current) => ({ ...current, units: event.target.value }))
-              }
-            >
-              <option value="metric">Metric (g, kg)</option>
-              <option value="imperial">Imperial (oz, lb)</option>
-            </select>
-            <span className="field-hint">Used when you enter a weight by hand.</span>
-          </label>
+          {/* ponytail: units picker hidden until something outputs imperial (A-2); the saved value is kept. */}
         </div>
 
         <p className="coverage-note num" style={{ marginTop: 'var(--s-3)' }}>
