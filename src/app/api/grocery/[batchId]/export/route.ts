@@ -28,8 +28,9 @@ const COLUMNS: Array<[header: string, read: (item: GroceryItem) => unknown]> = [
 function csvCell(value: unknown): string {
   if (value === null || value === undefined) return ''
   const text = String(value)
-  // A leading =, +, - or @ is executed as a formula by spreadsheet apps.
-  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text
+  // A leading =, +, - or @ (or a tab or CR before one) is executed as a formula
+  // by spreadsheet apps.
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
   return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
 }
 
