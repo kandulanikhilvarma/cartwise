@@ -35,9 +35,11 @@ type NutritionSummaryProps = {
   items: GroceryItem[]
   profile?: NutrientProfile | null
   currency?: string | null
+  /** The TOTAL printed on the receipt. Home uses it too, so both pages agree. */
+  receiptTotal?: number | null
 }
 
-export function NutritionSummary({ items, profile, currency }: NutritionSummaryProps) {
+export function NutritionSummary({ items, profile, currency, receiptTotal }: NutritionSummaryProps) {
   const [showDetails, setShowDetails] = useState(false)
 
   const { signals, totals, coverage, weekly, spend } = useMemo(() => {
@@ -192,11 +194,14 @@ export function NutritionSummary({ items, profile, currency }: NutritionSummaryP
         <div className="spend-block">
           <div className="spend-head">
             <span className="spend-label">What it cost</span>
-            <span className="spend-total num">{money(spend.total, currency)}</span>
+            <span className="spend-total num">{money(receiptTotal ?? spend.total, currency)}</span>
           </div>
           <p className="fine-print num">
-            From {spend.itemsPriced} priced {spend.itemsPriced === 1 ? 'line' : 'lines'} on the
-            receipt
+            {receiptTotal != null
+              ? `The receipt’s printed total. Its ${spend.itemsPriced} priced ${
+                  spend.itemsPriced === 1 ? 'line comes' : 'lines come'
+                } to ${money(spend.total, currency)}`
+              : `From ${spend.itemsPriced} priced ${spend.itemsPriced === 1 ? 'line' : 'lines'} on the receipt`}
             {spend.costPerProteinGram !== null
               ? ` · ${money(spend.costPerProteinGram, currency)} per gram of protein`
               : ''}

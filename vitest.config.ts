@@ -15,5 +15,11 @@ export default defineConfig({
     // only ever passed because it happened to be unreachable. Empty means the
     // code takes its no-database path, which is what a unit test should see.
     env: { DATABASE_URL: '' },
+    // Without include, coverage counted only files a test imports, which
+    // overstated it: untested files did not appear at all.
+    coverage: {
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.ts'],
+    },
   },
 })

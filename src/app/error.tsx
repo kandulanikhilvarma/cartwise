@@ -15,7 +15,9 @@ export default function GlobalError({
       <section className="auth-card">
         <p className="eyebrow">Unexpected error</p>
         <h1>Something went wrong while loading this view.</h1>
-        <p className="lede">{error.message || 'Please retry, or return to the homepage.'}</p>
+        {/* Fixed copy: error.message can be an internal string. */}
+        <p className="lede">Please retry, or return to the homepage.</p>
+        {error.digest ? <p className="fine-print num">Reference {error.digest}</p> : null}
         <div className="cta-row">
           <Button variant="primary"  onClick={() => reset()} type="button">
             Retry

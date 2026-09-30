@@ -15,11 +15,14 @@ const SORTS: Array<{ value: SortKey; label: string }> = [
   { value: 'name', label: 'Store name' },
 ]
 
+// Receipt dates are stored as UTC midnight. Formatting them in the local zone
+// showed a 25 March shop as 24 March anywhere west of Greenwich.
 function shopDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    timeZone: 'UTC',
   })
 }
 
@@ -28,6 +31,9 @@ export function BatchList({ batches }: { batches: GroceryBatch[] }) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<SortKey>('newest')
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Delete takes two clicks, like the batch page: one mis-tap used to remove a
+  // whole shop with no way back.
+  const [confirmId, setConfirmId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const visible = useMemo(() => {
@@ -53,7 +59,11 @@ export function BatchList({ batches }: { batches: GroceryBatch[] }) {
     setError(null)
     try {
       const response = await fetch(`/api/grocery/${batch.id}`, { method: 'DELETE' })
-      if (!response.ok) throw new Error('Could not delete that batch.')
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { message?: string } | null
+        throw new Error(payload?.message ?? 'Could not delete that batch.')
+      }
+      setConfirmId(null)
       router.refresh()
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Could not delete that batch.')
@@ -91,7 +101,10 @@ export function BatchList({ batches }: { batches: GroceryBatch[] }) {
           ? `${visible.length} of ${batches.length} ${batches.length === 1 ? 'batch' : 'batches'} match “${query}”.`
           : ''}
       </p>
-      {error ? <p className="error-text">{error}</p> : null}
+      {/* Always mounted, so a screen reader announces the text when it arrives. */}
+      <p className="error-text" role="alert">
+        {error ?? ''}
+      </p>
 
       {visible.length === 0 ? (
         <section className="surface-card empty-state">
@@ -105,11 +118,14 @@ export function BatchList({ batches }: { batches: GroceryBatch[] }) {
         <div className="batch-list stagger">
           {visible.map((batch) => {
             const matched = batch.items.filter((item) => item.matchConfidence != null).length
+            const name = batch.storeName ?? 'Grocery batch'
+            const label = `${name}, ${shopDate(batch.purchasedAt)}`
+            const confirming = confirmId === batch.id
             return (
               <article className="batch-card" key={batch.id}>
                 <div>
                   <Link href={`/grocery/${batch.id}`}>
-                    <strong>{batch.storeName ?? 'Grocery batch'}</strong>
+                    <strong>{name}</strong>
                   </Link>
                   <p className="num">
                     {shopDate(batch.purchasedAt)} ·{' '}
@@ -121,17 +137,45 @@ export function BatchList({ batches }: { batches: GroceryBatch[] }) {
                   </p>
                 </div>
                 <div className="item-actions">
-                  <Link className={buttonClass('secondary', 'small')} href={`/grocery/${batch.id}`}>
-                    Open
-                  </Link>
-                  <Button
-                    variant="danger"
-                    size="small"
-                    disabled={busyId === batch.id}
-                    onClick={() => remove(batch)}
-                  >
-                    {busyId === batch.id ? 'Deleting…' : 'Delete'}
-                  </Button>
+                  {confirming ? (
+                    <>
+                      <Button
+                        variant="danger"
+                        size="small"
+                        disabled={busyId === batch.id}
+                        onClick={() => remove(batch)}
+                        aria-label={`Confirm: delete ${label} and its items`}
+                      >
+                        {busyId === batch.id ? 'Deleting…' : 'Yes, delete'}
+                      </Button>
+                      <Button
+                        size="small"
+                        disabled={busyId === batch.id}
+                        onClick={() => setConfirmId(null)}
+                        aria-label={`Keep ${label}`}
+                      >
+                        Keep
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        className={buttonClass('secondary', 'small')}
+                        href={`/grocery/${batch.id}`}
+                        aria-label={`Open ${label}`}
+                      >
+                        Open
+                      </Link>
+                      <Button
+                        variant="danger"
+                        size="small"
+                        onClick={() => setConfirmId(batch.id)}
+                        aria-label={`Delete ${label}`}
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  )}
                 </div>
               </article>
             )

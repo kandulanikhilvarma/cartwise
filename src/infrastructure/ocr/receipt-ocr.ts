@@ -4,7 +4,7 @@ import {
   deriveStoreName,
   detectCurrency,
   extractTotalSpend,
-  parseItemLine,
+  parseItemLines,
   parseReceiptDate,
 } from './receipt-parse'
 
@@ -22,24 +22,11 @@ export type ReceiptParseResult = {
 const MAX_ITEMS = 60
 
 async function buildItems(lines: string[]): Promise<{ items: GroceryItem[]; truncated: boolean }> {
-  const parsed: Array<ReturnType<typeof parseItemLine> & object> = []
-  const seen = new Set<string>()
-  let truncated = false
-
-  for (const rawLine of lines) {
-    const line = parseItemLine(rawLine)
-    if (!line) continue
-
-    const key = line.productName.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-
-    if (parsed.length >= MAX_ITEMS) {
-      truncated = true
-      break
-    }
-    parsed.push(line)
-  }
+  // No de-duplication by name: "YOGURT 500g" and "YOGURT 150g" are two
+  // purchases. Overlap between photos is removed on the device (joinPages).
+  const all = parseItemLines(lines)
+  const parsed = all.slice(0, MAX_ITEMS)
+  const truncated = all.length > MAX_ITEMS
 
   const matches = await lookupNutritionMany(parsed.map((line) => line.productName))
 

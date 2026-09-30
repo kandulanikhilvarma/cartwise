@@ -2,7 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { auth } from '@/auth'
 import { listBatches } from '@/infrastructure/state/batch-store'
-import { summarizeHistory } from '@/features/grocery/lib/history'
+import { findUseItUp, summarizeHistory } from '@/features/grocery/lib/history'
 import { buttonClass } from '@/shared/components/Button'
 
 export const metadata: Metadata = { title: 'Home' }
@@ -27,6 +27,7 @@ export default async function AppHomePage() {
 
   const batches = await listBatches(ownerEmail)
   const history = summarizeHistory(batches)
+  const useItUp = findUseItUp(batches)
   const firstName = session.user?.name?.split(' ')[0]
 
   if (history.batchCount === 0) {
@@ -116,6 +117,28 @@ export default async function AppHomePage() {
           ))}
         </ul>
       </section>
+
+      {useItUp.length > 0 ? (
+        <section className="surface-card">
+          <div className="section-header">
+            <p className="eyebrow">Use it up</p>
+            <h2>Still in your kitchen?</h2>
+            <p className="fine-print">
+              Fresh food from recent shops that is not marked eaten. Open the shop to mark it.
+            </p>
+          </div>
+          <ul className="trend-list is-plain">
+            {useItUp.map((entry) => (
+              <li key={`${entry.batchId}-${entry.productName}`}>
+                <Link href={`/grocery/${entry.batchId}`}>{entry.productName}</Link>
+                <span className="num">
+                  bought {entry.daysAgo} {entry.daysAgo === 1 ? 'day' : 'days'} ago
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {history.frequent.length > 0 ? (
         <section className="surface-card">

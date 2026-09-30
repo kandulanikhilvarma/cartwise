@@ -1,10 +1,19 @@
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Privacy',
+  description:
+    'What Cartwise stores, what it never stores, and which services see your data.',
+  alternates: { canonical: '/privacy' },
+}
 
 export default function PrivacyPage() {
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <MarketingNav />
+      <main id="main">
       <section className="surface-card marketing-article">
         <p className="eyebrow">Privacy</p>
         <h1>Privacy principles for receipt-first nutrition.</h1>
@@ -32,7 +41,8 @@ export default function PrivacyPage() {
           </p>
         </div>
       </section>
+      </main>
       <MarketingFooter />
-    </main>
+    </div>
   )
 }

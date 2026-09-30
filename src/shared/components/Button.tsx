@@ -1,9 +1,11 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ComponentPropsWithRef } from 'react'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'hero-ghost'
 export type ButtonSize = 'default' | 'small'
 
-type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & {
+// With ref: React 19 passes it as an ordinary prop, so focus can be moved to a
+// button that replaces another.
+type ButtonProps = Omit<ComponentPropsWithRef<'button'>, 'className'> & {
   variant?: ButtonVariant
   size?: ButtonSize
   /** Layout classes belonging to the surrounding page, not to the button. */

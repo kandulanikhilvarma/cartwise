@@ -36,8 +36,9 @@ export const metadata: Metadata = {
     title: 'Cartwise — know what you bought',
     description: 'One receipt in. Real nutrition out. No manual logging.',
     type: 'website',
+    // No fixed url: it was inherited by every page, so each one shared as the
+    // homepage. Canonicals are set per page instead.
     siteName: 'Cartwise',
-    url: SITE_URL,
   },
   twitter: {
     card: 'summary_large_image',
@@ -87,8 +88,10 @@ export default function RootLayout({
         */}
         {children}
         {/* Page counts only: cookieless, no cross-site identifier, served from
-            this domain. Named in the privacy policy for that reason. */}
-        <Analytics />
+            this domain. Named in the privacy policy for that reason. In
+            development it loads a debug script from another origin, which the
+            CSP blocks, so it only runs in production builds. */}
+        {process.env.NODE_ENV === 'production' ? <Analytics /> : null}
       </body>
     </html>
   )

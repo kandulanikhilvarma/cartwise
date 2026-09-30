@@ -1,6 +1,14 @@
 import Image from 'next/image'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'How it works',
+  description:
+    'From a receipt photo to a nutrition read: on-device OCR, weight-scaled USDA and Open Food Facts data, and three signals.',
+  alternates: { canonical: '/how-it-works' },
+}
 
 const flow = [
   {
@@ -23,8 +31,9 @@ const flow = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <MarketingNav />
+      <main id="main">
       <figure className="page-banner">
         <Image src="/images/groceries-bag.jpg" alt="A reusable kraft grocery bag." fill sizes="(max-width: 1160px) 100vw, 1120px" priority />
       </figure>
@@ -40,7 +49,8 @@ export default function HowItWorksPage() {
           ))}
         </div>
       </section>
+      </main>
       <MarketingFooter />
-    </main>
+    </div>
   )
 }

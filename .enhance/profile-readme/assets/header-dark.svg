@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-labelledby="t d">
+  <title id="t">Nikhilvarma Kandula</title>
+  <desc id="d">Founder and AI engineer, based in Germany. Six products live.</desc>
+  <style>
+    .name { font: 700 56px "Segoe UI", Helvetica, Arial, sans-serif; fill: #e6edf3; }
+    .line { font: 400 24px "Segoe UI", Helvetica, Arial, sans-serif; fill: #9198a1; }
+    .rule { stroke: #3fb950; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 420; stroke-dashoffset: 420; animation: draw 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards; }
+    .dot { fill: #3fb950; animation: pulse 2.4s ease-in-out 1.5s infinite; transform-origin: 1128px 110px; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    @media (prefers-reduced-motion: reduce) {
+      .rule { animation: none; stroke-dashoffset: 0; }
+      .dot { animation: none; }
+    }
+  </style>
+  <rect width="1200" height="220" fill="#0d1117"/>
+  <text x="72" y="100" class="name">Nikhilvarma Kandula</text>
+  <line x1="74" y1="126" x2="494" y2="126" class="rule"/>
+  <text x="72" y="172" class="line">Founder and AI engineer, based in Germany. I build software, ship it, and keep it running.</text>
+  <circle cx="1128" cy="110" r="9" class="dot"/>
+</svg>

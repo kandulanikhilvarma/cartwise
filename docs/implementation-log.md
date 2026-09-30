@@ -235,3 +235,49 @@ Google sign-in and need a signed-in capture.
 
 Verified: lint clean, tsc clean, 57 tests pass, production build succeeds,
 /demo reads 12 of 12 against the live sources.
+
+### 2026-09-30 - Enhance pass (branch enhance/2026-09-29)
+
+Full audit, backlog and fixes. Evidence and every item are in `.enhance/`
+(`AUDIT_REPORT.md`, `BACKLOG.md`, `PROGRESS.md`, `BLOCKERS.md`).
+
+Security
+- next 15.5.19 -> 15.5.26 and next-auth beta.29 -> beta.32 close three
+  critical advisories, one an Auth.js fail-open on existence-based checks
+  like the middleware's. postcss and sharp forced to patched versions.
+  Prod `npm audit`: 6 findings -> 0.
+- The public health route stopped returning the database host and driver
+  errors. Receipt 500s and the error boundary show fixed copy.
+- Item and batch bodies are type-checked and length-capped. The in-memory
+  store is scoped per owner. The Upstash limiter sets its expiry in the same
+  request. Unverified Google emails are refused. CSV guards tab and CR.
+
+Truth
+- The barcode route answered unknown codes with two invented "Cartwise
+  Pantry" products, and mixed per-serving kcal into per-100 g figures.
+- The parser now handles two-line items, payment/subtotal/savings lines,
+  negative discounts, the multiplication sign, counts inside a pack, mid-line
+  multipacks, TOTAL SAVINGS, thousands separators, day-equals-month dates and
+  the most frequent currency. It no longer drops a second size of a product;
+  only the overlap between photos is removed.
+- No nutrient gap is claimed when nothing is weighed. Protein cost uses only
+  lines with a price, weight and match. Batch page and Home agree on the total.
+  Home no longer adds GBP to USD.
+
+Product
+- Scan first, sign in to save (PRD §5). Barcode products can be added to a
+  shop with their own figures, and scanned with the camera where supported.
+  Home lists fresh food not yet eaten. Settings downloads all data as JSON.
+- Batch-list delete has a confirm step. Undo keeps the price and survives a
+  failed request. Stale responses no longer revert newer edits.
+
+Accessibility and design
+- Keyboard crop sliders, skip link on every marketing page, landmarks fixed,
+  live regions always mounted, focus kept when buttons swap, aria-current in
+  the app nav, named row buttons, four contrast failures fixed, 320px overflow
+  fixed. Motion and on-photo tokens; color-scheme.
+
+Performance and SEO
+- Marketing pages are static (the nav no longer calls auth()). /demo no
+  longer queries the production DB at build. Per-page titles, canonicals,
+  JSON-LD, sitemap with /demo.

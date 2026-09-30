@@ -1,8 +1,6 @@
 import Link from 'next/link'
-import { auth } from '@/auth'
 import { Logo } from '@/shared/components/Logo'
-import { SignOutButton } from '@/features/auth/components/SignOutButton'
-import { buttonClass } from '@/shared/components/Button'
+import { NavAuthCta } from '@/shared/components/NavAuthCta'
 
 const links = [
   { href: '/how-it-works', label: 'How it works' },
@@ -12,13 +10,15 @@ const links = [
   { href: '/contact', label: 'Contact' },
 ]
 
-export async function MarketingNav() {
-  const session = await auth()
-  const user = session?.user
-  const firstName = user?.name?.split(' ')[0] ?? user?.email ?? null
-
+// No auth() here: reading the session on the server made every marketing page
+// dynamic. NavAuthCta swaps in the signed-in buttons on the client.
+export function MarketingNav() {
   return (
     <header className="marketing-nav" aria-label="Marketing navigation">
+      {/* Every marketing page puts its content in <main id="main">. */}
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <Link href="/" aria-label="Cartwise home">
         <Logo />
       </Link>
@@ -30,24 +30,7 @@ export async function MarketingNav() {
         ))}
       </nav>
       <div className="marketing-nav-cta">
-        {user ? (
-          <>
-            {firstName ? <span className="nav-user">Hi, {firstName}</span> : null}
-            <Link className={buttonClass('primary')} href="/home">
-              Open Cartwise
-            </Link>
-            <SignOutButton />
-          </>
-        ) : (
-          <>
-            <Link className={buttonClass()} href="/login">
-              Sign in
-            </Link>
-            <Link className={buttonClass('primary')} href="/scan">
-              Scan a receipt
-            </Link>
-          </>
-        )}
+        <NavAuthCta />
       </div>
     </header>
   )

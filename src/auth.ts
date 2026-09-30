@@ -28,4 +28,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: '/login',
   },
+  callbacks: {
+    // Every record is keyed by email, so an email Google has not verified must
+    // not be allowed to claim one.
+    signIn({ account, profile }) {
+      if (account?.provider === 'google') return profile?.email_verified === true
+      return true
+    },
+  },
 })

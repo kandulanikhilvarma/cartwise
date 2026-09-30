@@ -52,6 +52,7 @@ export default async function BatchPage({ params }: BatchPageProps) {
             items={batch.items}
             profile={profile}
             currency={batch.currency ?? null}
+            receiptTotal={batch.totalSpend}
           />
         </section>
       ) : null}

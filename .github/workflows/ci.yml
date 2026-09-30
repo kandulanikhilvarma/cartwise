@@ -13,18 +13,18 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 20 reached end of life in April 2026.
+          node-version: 22
           cache: npm
 
+      # postinstall already runs prisma generate.
       - run: npm ci
-
-      - run: npx prisma generate
 
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Test
         run: npm test

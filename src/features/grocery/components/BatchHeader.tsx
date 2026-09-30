@@ -1,8 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, buttonClass } from '@/shared/components/Button'
+
+async function failure(response: Response, fallback: string): Promise<Error> {
+  const payload = (await response.json().catch(() => null)) as { message?: string } | null
+  return new Error(payload?.message ?? fallback)
+}
+
+// When a button swaps for another, focus goes to its replacement. Otherwise it
+// falls back to <body> and a keyboard user starts again from the top.
+function focusNext(ref: React.RefObject<HTMLElement | null>) {
+  requestAnimationFrame(() => ref.current?.focus())
+}
 
 export function BatchHeader({
   batchId,
@@ -19,12 +30,19 @@ export function BatchHeader({
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const renameRef = useRef<HTMLButtonElement>(null)
+  const deleteRef = useRef<HTMLButtonElement>(null)
+  const keepRef = useRef<HTMLButtonElement>(null)
 
+  // Stored as UTC midnight; formatting in the local zone moved it a day back
+  // anywhere west of Greenwich.
   const shopDate = new Date(purchasedAt).toLocaleDateString(undefined, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'UTC',
   })
 
   async function saveName() {
@@ -42,8 +60,9 @@ export function BatchHeader({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ storeName: next }),
       })
-      if (!response.ok) throw new Error('Could not rename that batch.')
+      if (!response.ok) throw await failure(response, 'Could not rename that batch.')
       setEditing(false)
+      focusNext(renameRef)
       router.refresh()
     } catch (renameError) {
       setError(renameError instanceof Error ? renameError.message : 'Could not rename that batch.')
@@ -57,7 +76,7 @@ export function BatchHeader({
     setError(null)
     try {
       const response = await fetch(`/api/grocery/${batchId}`, { method: 'DELETE' })
-      if (!response.ok) throw new Error('Could not delete that batch.')
+      if (!response.ok) throw await failure(response, 'Could not delete that batch.')
       router.push('/grocery')
       router.refresh()
     } catch (deleteError) {
@@ -68,26 +87,21 @@ export function BatchHeader({
 
   return (
     <div className="scan-intro">
+      {/* The heading stays while renaming, so the page keeps its name. */}
+      <h1>{storeName}</h1>
       {editing ? (
         <label className="field" style={{ maxWidth: '26rem' }}>
           Batch name
-          <input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
+          <input ref={nameRef} value={name} onChange={(event) => setName(event.target.value)} />
         </label>
-      ) : (
-        <h1>{storeName}</h1>
-      )}
+      ) : null}
 
       <p className="lede num">Shopped {shopDate}</p>
 
       <div className="cta-row">
         {editing ? (
           <>
-            <Button
-              variant="primary"
-              size="small"
-              disabled={busy}
-              onClick={saveName}
-            >
+            <Button variant="primary" size="small" disabled={busy} onClick={saveName}>
               Save name
             </Button>
             <Button
@@ -95,6 +109,7 @@ export function BatchHeader({
               onClick={() => {
                 setName(storeName)
                 setEditing(false)
+                focusNext(renameRef)
               }}
             >
               Cancel
@@ -102,8 +117,12 @@ export function BatchHeader({
           </>
         ) : (
           <Button
+            ref={renameRef}
             size="small"
-            onClick={() => setEditing(true)}
+            onClick={() => {
+              setEditing(true)
+              focusNext(nameRef)
+            }}
           >
             Rename
           </Button>
@@ -115,33 +134,38 @@ export function BatchHeader({
 
         {confirming ? (
           <>
-            <Button
-              variant="danger"
-              size="small"
-              disabled={busy}
-              onClick={remove}
-            >
+            <Button variant="danger" size="small" disabled={busy} onClick={remove}>
               {busy ? 'Deleting…' : 'Yes, delete this batch'}
             </Button>
             <Button
+              ref={keepRef}
               size="small"
-              onClick={() => setConfirming(false)}
+              onClick={() => {
+                setConfirming(false)
+                focusNext(deleteRef)
+              }}
             >
               Keep it
             </Button>
           </>
         ) : (
           <Button
+            ref={deleteRef}
             variant="danger"
             size="small"
-            onClick={() => setConfirming(true)}
+            onClick={() => {
+              setConfirming(true)
+              focusNext(keepRef)
+            }}
           >
             Delete batch
           </Button>
         )}
       </div>
 
-      {error ? <p className="error-text">{error}</p> : null}
+      <p className="error-text" role="alert">
+        {error ?? ''}
+      </p>
     </div>
   )
 }

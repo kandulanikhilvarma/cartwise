@@ -1,8 +1,12 @@
 import type { GroceryBatch, GroceryItem } from '@/features/grocery/types'
 import { prisma } from '@/infrastructure/db/client'
 import { lookupNutrition } from '@/infrastructure/services/food-lookup'
+import { classifyFoodGroup } from '@/features/nutrition/lib/food-group'
 
 const memoryBatches = new Map<string, GroceryBatch>()
+// Batch id -> owner email. Without it, memory mode showed every user's batches
+// to every other user, and deleting one account cleared them all.
+const memoryOwners = new Map<string, string>()
 const memoryProfiles = new Map<string, UserProfile>()
 const databaseUnavailable = !process.env.DATABASE_URL
 
@@ -152,13 +156,16 @@ function saveMemoryBatch(batch: GroceryBatch): GroceryBatch {
   return batch
 }
 
-function loadMemoryBatch(batchId: string): GroceryBatch | null {
-  return memoryBatches.get(batchId) ?? null
+function loadMemoryBatch(owner: string, batchId: string): GroceryBatch | null {
+  return memoryOwners.get(batchId) === owner ? (memoryBatches.get(batchId) ?? null) : null
 }
 
-function memoryCreateProcessingBatch(receiptName: string | null): GroceryBatch {
+function memoryCreateProcessingBatch(owner: string, receiptName: string | null): GroceryBatch {
+  // Date.now() alone collided when two scans landed in the same millisecond.
+  const id = `batch-${crypto.randomUUID()}`
+  memoryOwners.set(id, owner)
   return saveMemoryBatch({
-    id: `batch-${Date.now()}`,
+    id,
     storeName: receiptName,
     ocrStatus: 'processing',
     purchasedAt: new Date().toISOString(),
@@ -170,11 +177,12 @@ function memoryCreateProcessingBatch(receiptName: string | null): GroceryBatch {
 }
 
 function memoryCompleteBatch(
+  owner: string,
   batchId: string,
   items: GroceryItem[],
   meta: BatchMeta,
 ): GroceryBatch | null {
-  const batch = loadMemoryBatch(batchId)
+  const batch = loadMemoryBatch(owner, batchId)
   if (!batch) return null
 
   return saveMemoryBatch({
@@ -189,17 +197,14 @@ function memoryCompleteBatch(
   })
 }
 
-function memoryListBatches(): GroceryBatch[] {
-  return Array.from(memoryBatches.values()).sort((left, right) =>
-    right.purchasedAt.localeCompare(left.purchasedAt),
-  )
+function memoryListBatches(owner: string): GroceryBatch[] {
+  return Array.from(memoryBatches.values())
+    .filter((batch) => memoryOwners.get(batch.id) === owner)
+    .sort((left, right) => right.purchasedAt.localeCompare(left.purchasedAt))
 }
 
-function memoryAddItem(
-  batchId: string,
-  input: { productName: string; quantity?: number; unit?: string | null; packGrams?: number | null },
-): GroceryBatch | null {
-  const batch = loadMemoryBatch(batchId)
+function memoryAddItem(owner: string, batchId: string, input: NewItemInput): GroceryBatch | null {
+  const batch = loadMemoryBatch(owner, batchId)
   if (!batch) return null
 
   const quantity =
@@ -215,7 +220,7 @@ function memoryAddItem(
         quantity,
         unit: input.unit?.trim() ? input.unit.trim() : 'item',
         packGrams: input.packGrams ?? null,
-        linePrice: null,
+        linePrice: input.linePrice ?? null,
         matchConfidence: null,
         matchSource: null,
         allergens: [],
@@ -235,17 +240,19 @@ function memoryAddItem(
         calciumMg: null,
         consumed: false,
         consumedAt: null,
+        ...(input.per100g ? knownProductFields(input.productName, input.per100g) : {}),
       },
     ],
   })
 }
 
 async function memoryUpdateItem(
+  owner: string,
   batchId: string,
   itemId: string,
   patch: ItemPatch,
 ): Promise<GroceryBatch | null> {
-  const batch = loadMemoryBatch(batchId)
+  const batch = loadMemoryBatch(owner, batchId)
   if (!batch) return null
 
   const target = batch.items.find((item) => item.id === itemId)
@@ -329,6 +336,46 @@ async function databaseGetBatch(ownerEmail: string, batchId: string): Promise<Gr
 // Public API
 // ---------------------------------------------------------------------------
 
+export type NewItemInput = {
+  productName: string
+  quantity?: number
+  unit?: string | null
+  packGrams?: number | null
+  /** Sent by undo, so a restored line keeps its spend. */
+  linePrice?: number | null
+  /**
+   * Figures already known for this exact product (a scanned barcode). A name
+   * search could match a different product, so none is made when these exist.
+   */
+  per100g?: {
+    caloriesKcal: number
+    proteinG: number
+    carbsG: number
+    fatG: number
+    sodiumMg: number
+  } | null
+}
+
+/** Nutrition fields for an item whose product is known exactly (Open Food Facts by barcode). */
+function knownProductFields(productName: string, per100g: NonNullable<NewItemInput['per100g']>) {
+  return {
+    unit: '100g',
+    matchConfidence: 1,
+    matchSource: 'off',
+    allergens: [] as string[],
+    additives: [] as string[],
+    foodGroup: classifyFoodGroup(productName),
+    novaGroup: null,
+    nutriScore: null,
+    ...per100g,
+    sugarG: null,
+    fiberG: null,
+    vitaminDMcg: null,
+    ironMg: null,
+    calciumMg: null,
+  }
+}
+
 export type ItemPatch = {
   productName?: string
   quantity?: number
@@ -347,7 +394,7 @@ export async function createProcessingBatch(
   ownerEmail: string,
   receiptName: string | null,
 ): Promise<GroceryBatch> {
-  if (!hasDatabase()) return memoryCreateProcessingBatch(receiptName)
+  if (!hasDatabase()) return memoryCreateProcessingBatch(ownerEmail, receiptName)
 
   const user = await getOrCreateUser(ownerEmail)
   const batch = await prisma.groceryBatch.create({
@@ -363,7 +410,7 @@ export async function completeBatch(
   items: GroceryItem[] = [],
   meta: BatchMeta = {},
 ): Promise<GroceryBatch | null> {
-  if (!hasDatabase()) return memoryCompleteBatch(batchId, items, meta)
+  if (!hasDatabase()) return memoryCompleteBatch(ownerEmail, batchId, items, meta)
 
   const batch = await prisma.groceryBatch.findFirst({
     where: { id: batchId, user: { email: ownerEmail } },
@@ -420,12 +467,12 @@ export async function completeBatch(
 }
 
 export async function getBatch(ownerEmail: string, batchId: string): Promise<GroceryBatch | null> {
-  if (!hasDatabase()) return loadMemoryBatch(batchId)
+  if (!hasDatabase()) return loadMemoryBatch(ownerEmail, batchId)
   return databaseGetBatch(ownerEmail, batchId)
 }
 
 export async function listBatches(ownerEmail: string): Promise<GroceryBatch[]> {
-  if (!hasDatabase()) return memoryListBatches()
+  if (!hasDatabase()) return memoryListBatches(ownerEmail)
 
   const batches = await prisma.groceryBatch.findMany({
     where: { user: { email: ownerEmail } },
@@ -489,7 +536,7 @@ export async function listFrequentItems(
 
   if (!hasDatabase()) {
     const rows: Array<{ productName: string; packGrams: number | null }> = []
-    for (const batch of memoryListBatches()) {
+    for (const batch of memoryListBatches(ownerEmail)) {
       for (const item of batch.items) {
         if (batch.id === excludeBatchId) {
           exclude.add(item.productName.trim().toLowerCase())
@@ -531,7 +578,7 @@ export async function renameBatch(
   if (!name) return null
 
   if (!hasDatabase()) {
-    const batch = loadMemoryBatch(batchId)
+    const batch = loadMemoryBatch(ownerEmail, batchId)
     return batch ? saveMemoryBatch({ ...batch, storeName: name }) : null
   }
 
@@ -546,7 +593,9 @@ export async function renameBatch(
 }
 
 export async function deleteBatch(ownerEmail: string, batchId: string): Promise<boolean> {
-  if (!hasDatabase()) return memoryBatches.delete(batchId)
+  if (!hasDatabase()) {
+    return memoryOwners.get(batchId) === ownerEmail && memoryBatches.delete(batchId)
+  }
 
   const batch = await prisma.groceryBatch.findFirst({
     where: { id: batchId, user: { email: ownerEmail } },
@@ -570,9 +619,9 @@ export async function setItemConsumed(
 export async function addBatchItem(
   ownerEmail: string,
   batchId: string,
-  input: { productName: string; quantity?: number; unit?: string | null; packGrams?: number | null },
+  input: NewItemInput,
 ): Promise<GroceryBatch | null> {
-  if (!hasDatabase()) return memoryAddItem(batchId, input)
+  if (!hasDatabase()) return memoryAddItem(ownerEmail, batchId, input)
 
   const batch = await prisma.groceryBatch.findFirst({
     where: { id: batchId, user: { email: ownerEmail } },
@@ -580,8 +629,11 @@ export async function addBatchItem(
   })
   if (!batch) return null
 
-  // A hand-added item gets the same lookup a scanned one does.
-  const nutrition = await nutritionFieldsFor(input.productName)
+  // A hand-added item gets the same lookup a scanned one does, unless the exact
+  // product is already known from its barcode.
+  const nutrition = input.per100g
+    ? knownProductFields(input.productName, input.per100g)
+    : await nutritionFieldsFor(input.productName)
 
   await prisma.groceryItem.create({
     data: {
@@ -590,6 +642,7 @@ export async function addBatchItem(
       quantity:
         Number.isFinite(input.quantity) && (input.quantity ?? 0) > 0 ? (input.quantity ?? 1) : 1,
       packGrams: input.packGrams ?? null,
+      linePrice: input.linePrice ?? null,
       ...nutrition,
       unit: nutrition.unit ?? (input.unit?.trim() ? input.unit.trim() : 'item'),
     },
@@ -604,7 +657,7 @@ export async function updateBatchItem(
   itemId: string,
   patch: ItemPatch,
 ): Promise<GroceryBatch | null> {
-  if (!hasDatabase()) return memoryUpdateItem(batchId, itemId, patch)
+  if (!hasDatabase()) return memoryUpdateItem(ownerEmail, batchId, itemId, patch)
 
   const item = await prisma.groceryItem.findFirst({
     where: { id: itemId, batchId, batch: { user: { email: ownerEmail } } },
@@ -649,7 +702,7 @@ export async function removeBatchItem(
   itemId: string,
 ): Promise<GroceryBatch | null> {
   if (!hasDatabase()) {
-    const batch = loadMemoryBatch(batchId)
+    const batch = loadMemoryBatch(ownerEmail, batchId)
     if (!batch) return null
     return saveMemoryBatch({ ...batch, items: batch.items.filter((item) => item.id !== itemId) })
   }
@@ -674,7 +727,7 @@ export async function markBatchFailed(
   }
 
   if (!hasDatabase()) {
-    const batch = loadMemoryBatch(batchId)
+    const batch = loadMemoryBatch(ownerEmail, batchId)
     return batch ? saveMemoryBatch({ ...batch, ocrStatus: 'failed' }) : null
   }
 
@@ -740,7 +793,10 @@ export async function saveProfile(
 /** Removes the account and every batch under it. Irreversible by design. */
 export async function deleteAccount(ownerEmail: string): Promise<boolean> {
   if (!hasDatabase()) {
-    memoryBatches.clear()
+    for (const batch of memoryListBatches(ownerEmail)) {
+      memoryBatches.delete(batch.id)
+      memoryOwners.delete(batch.id)
+    }
     memoryProfiles.delete(ownerEmail)
     return true
   }

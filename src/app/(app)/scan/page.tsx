@@ -21,7 +21,7 @@ export default async function ScanPage() {
         </p>
       </div>
 
-      <ReceiptUploader profile={profile} />
+      <ReceiptUploader profile={profile} signedIn={Boolean(ownerEmail)} />
 
       <p className="fine-print">
         Missed an item, or scanning a single product?{' '}

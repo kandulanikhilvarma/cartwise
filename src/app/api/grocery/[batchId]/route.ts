@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { deleteBatch, getBatch, renameBatch } from '@/infrastructure/state/batch-store'
-import { parseJsonBody } from '@/shared/lib/http'
+import { cleanName, parseJsonBody } from '@/shared/lib/http'
 
 type RouteParams = { params: Promise<{ batchId: string }> }
 
@@ -31,12 +31,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await parseJsonBody<{ storeName?: string }>(request)
-  if (!body?.storeName?.trim()) {
-    return NextResponse.json({ message: 'A name is required' }, { status: 400 })
+  const body = await parseJsonBody<{ storeName?: unknown }>(request)
+  const storeName = cleanName(body?.storeName, 80)
+  if (!storeName) {
+    return NextResponse.json({ message: 'A name of up to 80 characters is required.' }, { status: 400 })
   }
 
-  const batch = await renameBatch(ownerEmail, batchId, body.storeName)
+  const batch = await renameBatch(ownerEmail, batchId, storeName)
   if (!batch) {
     return NextResponse.json({ message: 'Batch not found' }, { status: 404 })
   }

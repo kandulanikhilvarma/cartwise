@@ -1,5 +1,14 @@
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
+import type { Metadata } from 'next'
+import { JsonLd } from '@/shared/components/JsonLd'
+
+export const metadata: Metadata = {
+  title: 'FAQ',
+  description:
+    'Answers to first questions about Cartwise: meal logging, missed items, sign-in, and medical advice.',
+  alternates: { canonical: '/faq' },
+}
 
 const faq = [
   {
@@ -22,8 +31,20 @@ const faq = [
 
 export default function FaqPage() {
   return (
-    <main className="page-shell">
+    <div className="page-shell">
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: faq.map((item) => ({
+            '@type': 'Question',
+            name: item.q,
+            acceptedAnswer: { '@type': 'Answer', text: item.a },
+          })),
+        }}
+      />
       <MarketingNav />
+      <main id="main">
       <section className="surface-card marketing-article">
         <p className="eyebrow">FAQ</p>
         <h1>Common questions from first-time users.</h1>
@@ -36,7 +57,8 @@ export default function FaqPage() {
           ))}
         </div>
       </section>
+      </main>
       <MarketingFooter />
-    </main>
+    </div>
   )
 }

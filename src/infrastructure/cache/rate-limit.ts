@@ -4,12 +4,20 @@ type RateLimitResult = { allowed: boolean; remaining: number; resetAt: number }
 type Bucket = { count: number; resetAt: number }
 
 const buckets = new Map<string, Bucket>()
+const SWEEP_AT = 10_000
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
 
-function memoryConsume(key: string, { limit, windowMs }: RateLimitOptions): RateLimitResult {
+export function memoryConsume(key: string, { limit, windowMs }: RateLimitOptions): RateLimitResult {
   const now = Date.now()
+  // ponytail: full sweep only when large; a timer would not outlive a serverless instance.
+  if (buckets.size > SWEEP_AT) {
+    for (const [bucketKey, bucket] of buckets) {
+      if (now >= bucket.resetAt) buckets.delete(bucketKey)
+    }
+  }
+
   const existing = buckets.get(key)
 
   if (!existing || now >= existing.resetAt) {
@@ -26,36 +34,36 @@ function memoryConsume(key: string, { limit, windowMs }: RateLimitOptions): Rate
   }
 }
 
+export function memoryBucketCount(): number {
+  return buckets.size
+}
+
 /**
- * INCR the key, then set an expiry the first time it is seen. Uses the Upstash
- * REST API directly rather than a client library — two fetches is the whole
- * protocol, and it keeps the dependency list where it is.
+ * INCR and EXPIRE NX in one pipeline request, using the Upstash REST API
+ * directly rather than a client library. They used to be two requests: when the
+ * second one failed the key never expired, and that client stayed blocked.
+ * NX sets the expiry only when the key has none, so the window is fixed.
  */
 async function redisConsume(
   key: string,
   { limit, windowMs }: RateLimitOptions,
 ): Promise<RateLimitResult | null> {
   try {
-    const headers = { authorization: `Bearer ${REDIS_TOKEN}` }
-    const seconds = Math.ceil(windowMs / 1000)
-
-    const response = await fetch(`${REDIS_URL}/incr/${encodeURIComponent(key)}`, {
-      headers,
+    const response = await fetch(`${REDIS_URL}/pipeline`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${REDIS_TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify([
+        ['INCR', key],
+        ['EXPIRE', key, String(Math.ceil(windowMs / 1000)), 'NX'],
+      ]),
       cache: 'no-store',
       signal: AbortSignal.timeout(2_000),
     })
     if (!response.ok) return null
 
-    const count = Number(((await response.json()) as { result?: unknown }).result)
+    const [incr] = (await response.json()) as Array<{ result?: unknown }>
+    const count = Number(incr?.result)
     if (!Number.isFinite(count)) return null
-
-    if (count === 1) {
-      await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/${seconds}`, {
-        headers,
-        cache: 'no-store',
-        signal: AbortSignal.timeout(2_000),
-      })
-    }
 
     return {
       allowed: count <= limit,

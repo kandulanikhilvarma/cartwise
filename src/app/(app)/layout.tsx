@@ -4,14 +4,7 @@ import { auth } from '@/auth'
 import { SignOutButton } from '@/features/auth/components/SignOutButton'
 import { Logo } from '@/shared/components/Logo'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
-
-const navItems = [
-  { href: '/home', label: 'Home' },
-  { href: '/scan', label: 'Scan' },
-  { href: '/grocery', label: 'Batches' },
-  { href: '/barcode', label: 'Barcode' },
-  { href: '/settings', label: 'Settings' },
-]
+import { AppNav } from '@/shared/components/AppNav'
 
 export default async function AppLayout({
   children,
@@ -35,13 +28,7 @@ export default async function AppLayout({
           {session ? <SignOutButton /> : null}
         </div>
       </header>
-      <nav className="app-nav" aria-label="Primary">
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href}>
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <AppNav />
       <div className="app-content" id="app-main">
         {children}
       </div>
