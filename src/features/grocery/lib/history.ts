@@ -38,6 +38,34 @@ function produceCount(items: GroceryItem[]): number {
   return items.filter((item) => item.foodGroup === 'produce').length
 }
 
+export type UseItUpItem = {
+  productName: string
+  batchId: string
+  daysAgo: number
+}
+
+const PERISHABLE = new Set(['produce', 'protein', 'dairy'])
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Fresh food from recent shops that is not marked eaten yet, oldest first
+ * (PRD user story: "remind me about food I bought but haven't consumed").
+ * Two to ten days old: a same-day shop needs no reminder, and past ten days
+ * the food is gone one way or another.
+ */
+export function findUseItUp(batches: GroceryBatch[], now = Date.now(), limit = 8): UseItUpItem[] {
+  const found: UseItUpItem[] = []
+  for (const batch of batches) {
+    const daysAgo = Math.floor((now - new Date(batch.purchasedAt).getTime()) / DAY_MS)
+    if (daysAgo < 2 || daysAgo > 10) continue
+    for (const item of batch.items) {
+      if (item.consumed || !item.foodGroup || !PERISHABLE.has(item.foodGroup)) continue
+      found.push({ productName: item.productName, batchId: batch.id, daysAgo })
+    }
+  }
+  return found.sort((a, b) => b.daysAgo - a.daysAgo).slice(0, limit)
+}
+
 /**
  * The across-batches view. Every scan used to be an island, which made the
  * weekly-shopper premise impossible to act on.
