@@ -281,3 +281,11 @@ Performance and SEO
 - Marketing pages are static (the nav no longer calls auth()). /demo no
   longer queries the production DB at build. Per-page titles, canonicals,
   JSON-LD, sitemap with /demo.
+
+## 2026-10-01 - USDA Foundation energy
+
+- After the enhance deploy, /demo read 11 of 12: "Chicken Breast" unmatched.
+  USDA's top hit (a lunchmeat record) has no energy or protein, and Foundation
+  foods report energy as Atwater kcal (958/957), not 208, so good matches were
+  dropped. The lookup now reads 5 results, takes energy from 208, 958 or 957,
+  and prefers the first usable Foundation food. Test uses the live response shape.
