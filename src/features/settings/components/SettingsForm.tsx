@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { rdaForProfile } from '@/features/nutrition/lib/rda-constants'
-import { Button } from '@/shared/components/Button'
+import { Button, buttonClass } from '@/shared/components/Button'
 
 export type ProfileValues = {
   ageYears: number | null
@@ -228,8 +228,14 @@ export function SettingsForm({
           <h2>Take it with you, or remove it</h2>
           <p className="fine-print">
             Receipt photos are never stored — only the text they contain. Each batch exports as CSV
-            from its own page.
+            from its own page, or take everything at once as JSON.
           </p>
+        </div>
+
+        <div className="cta-row" style={{ marginTop: 'var(--s-3)' }}>
+          <a className={buttonClass()} href="/api/account/export" download>
+            Download all my data
+          </a>
         </div>
 
         <label className="field" style={{ marginTop: 'var(--s-3)', maxWidth: '26rem' }}>
