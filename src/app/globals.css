@@ -15,7 +15,7 @@
   /* --- ink --- */
   --ink: #211c13;
   --ink-soft: #564f3f;
-  --ink-faint: #7a7059;
+  --ink-faint: #6d6450;
   --line: rgba(33, 28, 19, 0.16);
   --line-strong: rgba(33, 28, 19, 0.28);
 
@@ -77,6 +77,28 @@
   --s-4: 32px;
   --s-5: 52px;
   --s-6: 84px;
+
+  /* --- motion --- */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* --- on a photograph ---
+     The hero sits on a photo, not on a token ground, so it has its own set.
+     Same in both themes: the photo does not change with the theme. */
+  --scrim-top: rgba(18, 20, 13, 0.2);
+  --scrim-mid: rgba(18, 20, 13, 0.34);
+  --scrim-bottom: rgba(18, 20, 13, 0.86);
+  --on-photo: #fbf7ee;
+  --on-photo-soft: rgba(247, 241, 227, 0.92);
+  --on-photo-line: rgba(247, 241, 227, 0.55);
+  --glass: rgba(255, 255, 255, 0.1);
+  --glass-strong: rgba(255, 255, 255, 0.2);
+  --photo-shadow: rgba(0, 0, 0, 0.32);
+
+  /* Native controls, scrollbars and pickers follow the theme. */
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -87,7 +109,7 @@
     --surface-2: #232819;
     --ink: #f1ebda;
     --ink-soft: #b7af9a;
-    --ink-faint: #8d8672;
+    --ink-faint: #9a937e;
     --line: rgba(241, 235, 218, 0.16);
     --line-strong: rgba(241, 235, 218, 0.3);
     --green: #23503c;
@@ -114,6 +136,7 @@
     --viz-drink: #6fa8b4;
     --shadow: 0 24px 50px -28px rgba(0, 0, 0, 0.7);
     --shadow-soft: 0 16px 34px -24px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
   }
 }
 
@@ -124,7 +147,7 @@
   --surface-2: #232819;
   --ink: #f1ebda;
   --ink-soft: #b7af9a;
-  --ink-faint: #8d8672;
+  --ink-faint: #9a937e;
   --line: rgba(241, 235, 218, 0.16);
   --line-strong: rgba(241, 235, 218, 0.3);
   --green: #23503c;
@@ -151,6 +174,7 @@
   --viz-drink: #6fa8b4;
   --shadow: 0 24px 50px -28px rgba(0, 0, 0, 0.7);
   --shadow-soft: 0 16px 34px -24px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
 }
 
 * {
@@ -224,7 +248,7 @@ td.num,
   padding: 10px 16px;
   border-radius: 0 0 10px 10px;
   z-index: 100;
-  transition: top 0.15s ease;
+  transition: top var(--dur-fast) ease;
 }
 .skip-link:focus {
   top: 0;
@@ -301,10 +325,10 @@ td.num,
   font-weight: 600;
   cursor: pointer;
   transition:
-    transform 0.16s ease,
-    background 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease;
+    transform var(--dur-fast) ease,
+    background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
 }
 .button:active {
   transform: translateY(1px);
@@ -388,8 +412,8 @@ td.num,
   color: var(--ink-soft);
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    color 0.15s ease;
+    background var(--dur-fast) ease,
+    color var(--dur-fast) ease;
 }
 .theme-toggle button:hover {
   color: var(--ink);
@@ -454,8 +478,8 @@ td.num,
   font-weight: 500;
   font-size: 0.95rem;
   transition:
-    color 0.15s ease,
-    background 0.15s ease;
+    color var(--dur-fast) ease,
+    background var(--dur-fast) ease;
 }
 .marketing-nav-links a:hover {
   color: var(--ink);
@@ -527,9 +551,9 @@ td.num,
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(18, 20, 13, 0.2) 0%,
-    rgba(18, 20, 13, 0.34) 42%,
-    rgba(18, 20, 13, 0.86) 100%
+    var(--scrim-top) 0%,
+    var(--scrim-mid) 42%,
+    var(--scrim-bottom) 100%
   );
 }
 .home-hero-content {
@@ -537,17 +561,17 @@ td.num,
   width: min(1160px, calc(100% - 40px));
   margin: 0 auto;
   padding: 0 0 clamp(40px, 6vw, 84px);
-  color: #f7f1e3;
+  color: var(--on-photo-soft);
 }
 .home-hero-content h1 {
-  color: #fbf7ee;
+  color: var(--on-photo);
   font-size: var(--step-4);
   max-width: 18ch;
-  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.32);
+  text-shadow: 0 2px 30px var(--photo-shadow);
 }
 .home-hero-lede {
   margin-top: var(--s-3);
-  color: rgba(247, 241, 227, 0.92);
+  color: var(--on-photo-soft);
   font-size: clamp(1.05rem, 1.5vw, 1.24rem);
   max-width: 48ch;
 }
@@ -555,9 +579,9 @@ td.num,
   margin-top: 30px;
 }
 .button-hero-ghost {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(247, 241, 227, 0.55);
-  color: #fbf7ee;
+  background: var(--glass);
+  border: 1px solid var(--on-photo-line);
+  color: var(--on-photo);
   backdrop-filter: blur(4px);
   padding: 12px 22px;
   border-radius: 999px;
@@ -567,12 +591,12 @@ td.num,
   align-items: center;
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+    background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease;
 }
 .button-hero-ghost:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: #fbf7ee;
+  background: var(--glass-strong);
+  border-color: var(--on-photo);
 }
 
 .home-figure {
@@ -999,6 +1023,12 @@ td.num,
   color: var(--ink);
   border-color: var(--line-strong);
 }
+.app-nav a[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+  border-color: var(--green-text);
+  box-shadow: inset 0 -2px 0 var(--green-text);
+}
 .app-content {
   display: grid;
   gap: var(--s-3);
@@ -1060,7 +1090,9 @@ td.num,
   font-size: 1rem;
   padding: 12px 14px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--line-strong);
+  /* --line-strong measured about 1.95:1 against the ground, under the 3:1 a
+     field boundary needs. */
+  border: 1px solid var(--ink-faint);
   background: var(--paper);
   color: var(--ink);
 }
@@ -1079,7 +1111,7 @@ td.num,
   background: var(--green);
   color: var(--on-green);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background var(--dur-fast) ease;
 }
 .upload-field input[type='file']::file-selector-button:hover {
   background: var(--green-deep);
@@ -1104,8 +1136,8 @@ td.num,
   border-radius: var(--radius);
   background: var(--surface-2);
   transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+    border-color var(--dur-fast) ease,
+    background var(--dur-fast) ease;
 }
 .upload-drop.is-dragging {
   border-color: var(--green);
@@ -1235,7 +1267,7 @@ td.num,
   height: 100%;
   background: var(--green);
   /* impeccable-disable-next-line layout-transition -- 4px bar in an overflow:hidden track, stepped by Tesseract's coarse progress callbacks */
-  transition: width 0.25s ease;
+  transition: width var(--dur) ease;
 }
 
 .result-card {
@@ -1270,6 +1302,13 @@ td.num,
   margin-top: 2px;
 }
 
+.error-text:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
 .error-text {
   color: var(--danger);
   font-size: 0.94rem;
@@ -1396,7 +1435,7 @@ td.num,
   border-radius: 999px;
   background: var(--ink-faint);
   /* impeccable-disable-next-line layout-transition -- scaleX would squash the 999px cap into an ellipse; settles once, not per frame */
-  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width var(--dur-slow) var(--ease-out);
 }
 .meter-track.tone-win .meter-fill {
   background: var(--signal-win);
@@ -1549,8 +1588,8 @@ td.num,
   gap: var(--s-3);
   color: var(--ink);
   transition:
-    border-color 0.15s ease,
-    transform 0.15s ease;
+    border-color var(--dur-fast) ease,
+    transform var(--dur-fast) ease;
 }
 .batch-card:hover {
   border-color: var(--line-strong);
@@ -1609,7 +1648,8 @@ td.num,
   white-space: nowrap;
 }
 .item-chip.is-unmatched {
-  color: var(--unmatched);
+  /* --unmatched is 3.3:1 on paper; it stays for the border only. */
+  color: var(--ink-soft);
   border-color: color-mix(in srgb, var(--unmatched) 45%, transparent);
 }
 .item-chip.is-noweight {
@@ -1656,9 +1696,14 @@ td.num,
 .buy-again-chip:focus-visible {
   border-color: var(--green);
 }
-.buy-again-chip:disabled {
+.buy-again-chip:disabled,
+.food-search-result:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.5;
+}
+.buy-again-chip:active:not(:disabled),
+.food-search-result:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 /* Correcting a garbled item by picking a real product, rather than guessing at
@@ -1791,17 +1836,24 @@ td.num,
   color: var(--on-green);
   box-shadow: var(--shadow);
   font-size: 0.92rem;
-  animation: toast-rise 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: toast-rise var(--dur-slow) var(--ease-out) both;
 }
 .toast button {
   font: inherit;
   font-weight: 600;
   background: none;
   border: none;
-  color: var(--accent-soft);
+  color: var(--on-green);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* The default ring is --accent-text, about 2:1 on dark green and less on the
+   hero photo. */
+.toast :focus-visible,
+.home-hero-content :focus-visible {
+  outline-color: var(--on-green);
 }
 
 @keyframes toast-rise {
@@ -1817,7 +1869,7 @@ td.num,
 
 /* Items settle in as their matches resolve, oldest first. */
 .stagger > * {
-  animation: settle-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: settle-in var(--dur-slow) var(--ease-out) both;
 }
 .stagger > *:nth-child(1) {
   animation-delay: 0.02s;
@@ -1857,6 +1909,9 @@ td.num,
   *::after {
     animation: none !important;
     transition: none !important;
+    scroll-behavior: auto;
+  }
+  html {
     scroll-behavior: auto;
   }
 }
@@ -1899,15 +1954,8 @@ td.num,
     justify-content: flex-start;
     margin: 0 -4px;
     padding-bottom: 2px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .marketing-nav-links::-webkit-scrollbar {
-    display: none;
-  }
-  .marketing-nav-links a {
-    white-space: nowrap;
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
 }
 
@@ -1929,6 +1977,16 @@ td.num,
   }
   .nav-user {
     display: none;
+  }
+  /* At 320px the logo and both buttons did not fit on one row, which pushed
+     the whole page 40px wider than the screen (WCAG 1.4.10). */
+  .marketing-nav {
+    grid-template-columns: 1fr;
+  }
+  .marketing-nav-cta .button {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    white-space: nowrap;
   }
   .spend-bars li,
   .trend-list li {

@@ -58,7 +58,9 @@ export function Meter({
       <div
         className={`meter-track tone-${tone}`}
         role="meter"
-        aria-valuenow={Math.round(share)}
+        // A value above max is invalid ARIA; the real share (which can pass
+        // 100%) is in the label and the visible text.
+        aria-valuenow={Math.min(100, Math.round(share))}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`${label}: ${format(value, decimals)} ${unit}, ${Math.round(share)} percent of ${periodLabel}`}
