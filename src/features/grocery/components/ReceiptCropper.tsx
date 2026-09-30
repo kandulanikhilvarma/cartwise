@@ -13,6 +13,11 @@ type ReceiptCropperProps = {
 
 type Point = { x: number; y: number }
 
+type Edge = 'top' | 'right' | 'bottom' | 'left'
+const EDGES: Edge[] = ['top', 'right', 'bottom', 'left']
+// Up to 45% from each side, so the two sides of an axis can never cross.
+const MAX_TRIM = 45
+
 function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value
 }
@@ -80,6 +85,30 @@ export function ReceiptCropper({ src, alt, crop, onChange, disabled }: ReceiptCr
   const shown = drag ?? crop
   const cropped = !isFullCrop(crop)
 
+  // The same crop as edges, for the sliders: dragging needs a pointer, and a
+  // keyboard or switch user must be able to leave the background out too.
+  const box = crop ?? { x: 0, y: 0, width: 1, height: 1 }
+  const edges: Record<Edge, number> = {
+    top: box.y,
+    right: 1 - box.x - box.width,
+    bottom: 1 - box.y - box.height,
+    left: box.x,
+  }
+
+  function setEdge(edge: Edge, value: number) {
+    const next = { ...edges, [edge]: value }
+    if (EDGES.every((name) => next[name] === 0)) {
+      onChange(null)
+      return
+    }
+    onChange({
+      x: next.left,
+      y: next.top,
+      width: 1 - next.left - next.right,
+      height: 1 - next.top - next.bottom,
+    })
+  }
+
   return (
     <div className="cropper">
       <div
@@ -114,6 +143,29 @@ export function ReceiptCropper({ src, alt, crop, onChange, disabled }: ReceiptCr
           </button>
         ) : null}
       </p>
+      <details className="cropper-trim">
+        <summary>Trim with sliders instead</summary>
+        <div className="cropper-trim-grid">
+          {EDGES.map((edge) => {
+            const percent = Math.round(edges[edge] * 100)
+            return (
+              <label className="field" key={edge}>
+                Trim from the {edge}
+                <input
+                  type="range"
+                  min={0}
+                  max={MAX_TRIM}
+                  step={1}
+                  value={percent}
+                  disabled={disabled}
+                  aria-valuetext={`${percent} percent`}
+                  onChange={(event) => setEdge(edge, Number(event.target.value) / 100)}
+                />
+              </label>
+            )
+          })}
+        </div>
+      </details>
     </div>
   )
 }
