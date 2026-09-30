@@ -8,6 +8,7 @@ import type { NutrientProfile } from '@/features/nutrition/lib/rda-constants'
 import { NutritionSummary } from '@/features/nutrition/components/NutritionSummary'
 import { ReceiptCropper } from '@/features/grocery/components/ReceiptCropper'
 import { ocrReceiptToLines, type CropRect } from '@/features/grocery/lib/client-ocr'
+import { joinPages } from '@/infrastructure/ocr/receipt-parse'
 import { Button, buttonClass } from '@/shared/components/Button'
 
 type Stage = 'idle' | 'reading' | 'matching'
@@ -76,22 +77,23 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
       return
     }
 
+    // Worked out here, not inside a state updater: StrictMode runs updaters
+    // twice, which made one object URL per photo that was never revoked.
+    const room = MAX_PAGES - pagesRef.current.length
+    if (room <= 0) {
+      setError(`Cartwise reads up to ${MAX_PAGES} photos in one batch.`)
+      return
+    }
+    const added = chosen.slice(0, room).map((file) => ({
+      id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+      file,
+      url: URL.createObjectURL(file),
+      crop: null,
+    }))
+
     setError(null)
     setBatch(null)
-    setPages((current) => {
-      const room = MAX_PAGES - current.length
-      if (room <= 0) {
-        setError(`Cartwise reads up to ${MAX_PAGES} photos in one batch.`)
-        return current
-      }
-      const added = chosen.slice(0, room).map((file) => ({
-        id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
-        file,
-        url: URL.createObjectURL(file),
-        crop: null,
-      }))
-      return [...current, ...added]
-    })
+    setPages((current) => [...current, ...added])
   }
 
   function removePage(id: string) {
@@ -119,16 +121,19 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
     setProgress(0)
 
     try {
-      const lines: string[] = []
+      const pageLines: string[][] = []
       for (const [index, page] of pages.entries()) {
-        const pageLines = await ocrReceiptToLines(
-          page.file,
-          // Each photo owns its slice of the bar, so the bar never restarts.
-          (value) => setProgress((index + value) / pages.length),
-          page.crop,
+        pageLines.push(
+          await ocrReceiptToLines(
+            page.file,
+            // Each photo owns its slice of the bar, so the bar never restarts.
+            (value) => setProgress((index + value) / pages.length),
+            page.crop,
+          ),
         )
-        lines.push(...pageLines)
       }
+      // Overlapping photos repeat the lines at each seam; keep them once.
+      const lines = joinPages(pageLines)
 
       if (lines.join('').trim().length === 0) {
         throw new Error('Couldn’t read any text. Try a sharper, well-lit photo of the whole receipt.')

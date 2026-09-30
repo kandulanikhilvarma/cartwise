@@ -8,21 +8,31 @@ const RECEIPT_KEYWORDS =
 export function cleanLine(line: string): string {
   return line
     .replace(/\s+/g, ' ')
-    .replace(/[^\w\s.,&'/@%$£€-]/g, ' ')
+    .replace(/[^\w\s.,&'/@%$£€×-]/g, ' ')
     .trim()
 }
+
+// "TOTAL 42.10" is a footer; "TOTAL GREEK YOGURT" is a product. After the word
+// there may only be money, or a word that says what kind of total it is.
+const TOTAL_LINE =
+  /^(sub ?-?total|total|grand total)(\s+(savings?|discounts?|saved|vat|tax|due|items?|to pay))?(\s+[$£€]?\d[\d.,]*\s*-?\s*[a-z]?)?$/i
 
 export function isNoiseLine(line: string): boolean {
   const normalized = line.toLowerCase().trim()
   if (!normalized || normalized.length < 3) return true
-  // Header/footer/payment lines.
+  if (TOTAL_LINE.test(normalized)) return true
+  // Header/footer/payment/savings lines.
   if (
-    /^(total|subtotal|sub-total|tax|gst|vat|change|change due|cash|card|visa|mastercard|debit|credit|tender|thank you|thank|receipt|invoice|store|market|date|time|balance|amount|qty|quantity|account|order|cashier|register|terminal|auth|approval|ref)\b/i.test(
+    /^(subtotal|sub total|sub-total|to pay|tax|gst|vat|change|change due|cash|card|contactless|visa|mastercard|debit|credit|tender|thank you|thank|receipt|invoice|store|market|date|time|balance|amount|qty|quantity|account|order|cashier|register|terminal|auth|approval|ref|you saved|saved|saving|savings|discount|coupon|voucher|promo|multibuy|multi-buy|clubcard|nectar|points)\b/i.test(
       normalized,
     )
   ) {
     return true
   }
+  // "12 ITEMS", "12 ITEMS TOTAL 45.67".
+  if (/^\d+\s+items?\b/i.test(normalized)) return true
+  // A negative amount is a discount or refund, never a purchase.
+  if (/(-\s?[$£€]?\d+[.,]\d{2}|\d+[.,]\d{2}\s?-)\s*[a-z]?$/i.test(normalized)) return true
   // Lines that are only digits/symbols (prices, codes, dividers, phone numbers).
   if (/^[\d\s.,:;$£€%*#/()+-]+$/.test(normalized)) return true
   return false
@@ -46,7 +56,13 @@ export function extractQuantity(line: string): number {
 // Money
 // ---------------------------------------------------------------------------
 
-const CURRENCY_BY_SYMBOL: Record<string, string> = { $: 'USD', '£': 'GBP', '€': 'EUR' }
+const CURRENCY_BY_SYMBOL: Record<string, string> = { $: 'USD', '£': 'GBP', '€': 'EUR', '₹': 'INR' }
+
+/** "1,234.56", "1.234,56" and "12,48" all read as the number they print. */
+function readMoney(text: string): number {
+  const digits = text.replace(/[.,](?=\d{3}(?:\D|$))/g, '').replace(',', '.')
+  return Number(digits)
+}
 
 /**
  * The line-item price a receipt prints at the right edge. Deliberately anchored
@@ -64,21 +80,34 @@ export function extractPrice(line: string): number | null {
   return Number.isFinite(value) && value > 0 && value < 10_000 ? value : null
 }
 
+/**
+ * The symbol printed most often. A receipt that shows a converted amount once
+ * ("£12.48 (US$ 15)") is still priced in the symbol on every other line.
+ */
 export function detectCurrency(lines: string[]): string | null {
+  const joined = lines.join(' ')
+  let best: string | null = null
+  let bestCount = 0
   for (const symbol of Object.keys(CURRENCY_BY_SYMBOL)) {
-    if (lines.some((line) => line.includes(symbol))) return CURRENCY_BY_SYMBOL[symbol]
+    const count = joined.split(symbol).length - 1
+    if (count > bestCount) {
+      best = CURRENCY_BY_SYMBOL[symbol]
+      bestCount = count
+    }
   }
-  return null
+  return best
 }
 
 /** The printed TOTAL, when the receipt states one. Never inferred from a sum. */
 export function extractTotalSpend(lines: string[]): number | null {
   for (const raw of lines) {
     const line = cleanLine(raw)
-    if (!/^(total|amount due|balance due|grand total)\b/i.test(line)) continue
-    const match = line.match(/(\d{1,5})[.,](\d{2})\s*$/)
+    if (!/^(total|amount due|balance due|grand total|to pay)\b/i.test(line)) continue
+    // "TOTAL SAVINGS 2.50" and "TOTAL VAT" are totals of something else.
+    if (/\b(sav|discount|vat|tax|items?)/i.test(line)) continue
+    const match = line.match(/(\d[\d.,]*[.,]\d{2})\s*$/)
     if (match) {
-      const value = Number(`${match[1]}.${match[2]}`)
+      const value = readMoney(match[1])
       if (Number.isFinite(value) && value > 0) return value
     }
   }
@@ -107,10 +136,14 @@ const GRAMS_PER_UNIT: Record<string, number> = {
  * null when the receipt does not say — an unknown mass stays unknown.
  */
 export function extractPackGrams(line: string): number | null {
-  const match = line.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|lbs|lb|oz|ml|l)\b/i)
+  // A multipack in the middle of a line ("YOGURT 4 x 125g") is one pack of
+  // four. At the start of a line ("2 x 400g") the number counts packs instead,
+  // which extractQuantity handles.
+  const multi = line.match(/\s(\d{1,2})\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(kg|g|lbs|lb|oz|ml|l)\b/i)
+  const match = multi ? [multi[0], multi[2], multi[3]] : line.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|lbs|lb|oz|ml|l)\b/i)
   if (!match) return null
 
-  const amount = Number(match[1].replace(',', '.'))
+  const amount = Number(match[1].replace(',', '.')) * (multi ? Number(multi[1]) : 1)
   const grams = GRAMS_PER_UNIT[match[2].toLowerCase()]
   if (!Number.isFinite(amount) || amount <= 0 || !grams) return null
 
@@ -166,8 +199,9 @@ export function parseReceiptDate(lines: string[]): Date | null {
     const first = Number(numeric[1])
     const second = Number(numeric[2])
     const year = numeric[3].length === 2 ? 2000 + Number(numeric[3]) : Number(numeric[3])
-    // Only resolvable when one part cannot be a month.
-    const [day, month] = first > 12 ? [first, second] : second > 12 ? [second, first] : [0, 0]
+    // Only resolvable when one part cannot be a month, or both parts agree.
+    const [day, month] =
+      first > 12 || first === second ? [first, second] : second > 12 ? [second, first] : [0, 0]
     if (day) {
       const date = new Date(Date.UTC(year, month - 1, day))
       if (plausible(date)) return date
@@ -187,10 +221,14 @@ export function stripCodes(line: string): string {
   let s = line
   // Leading quantity ("2 x", "3 ").
   s = s.replace(/^(\d+(?:\.\d+)?)\s*(?:x|×)?\s+/i, '')
+  // Leading pack size left behind by it ("3 × 500 ml OAT MILK").
+  s = s.replace(/^\d+(?:[.,]\d+)?\s*(?:kg|g|lbs|lb|oz|ml|l)\b\s*/i, '')
   // Leading code token: 4+ chars containing a digit (UPC/SKU/PLU), optional #/*.
   s = s.replace(/^[#*]?(?=[a-z0-9]*\d)[a-z0-9]{4,}\s+/i, '')
   // Trailing price, optionally tax-flagged ("3.49", "$3.49 T").
   s = s.replace(/\s+[$£€]?\d+[.,]\d{2}\s*[a-z]?$/i, '')
+  // Trailing multipack tail ("4 x 125g").
+  s = s.replace(/\s+\d{1,2}\s*[x×]\s*\d+(?:[.,]\d+)?\s*(?:kg|g|lb|lbs|oz|ml|l)\b.*$/i, '')
   // Trailing weight/unit tail ("0.68 lb", "1.2 kg @ 0.58/lb").
   s = s.replace(/\s+\d+(?:\.\d+)?\s*(?:kg|g|lb|lbs|oz|ml|l|ea|ct|pk)\b.*$/i, '')
   // Trailing "@ $x" unit-price tail.
@@ -246,12 +284,83 @@ export function parseItemLine(rawLine: string): ParsedLine | null {
   const rawName = deriveProductName(line)
   if (!hasRealName(rawName)) return null
 
+  // With a weight on the line, a bare leading count describes the pack ("6
+  // BREAD ROLLS 300g" is one bag). Only an explicit "N x" counts packs.
+  const explicitPacks = /^\d{1,2}\s*[x×]/i.test(line)
   return {
     productName: toTitleCase(rawName),
-    quantity: extractQuantity(line),
+    quantity: packGrams !== null && !explicitPacks ? 1 : extractQuantity(line),
     packGrams,
     linePrice,
   }
+}
+
+/** A line with a price or weight but no product name ("0.456 kg @ 2.99/kg 1.36"). */
+function isNamelessAmount(line: string): boolean {
+  return (
+    !isNoiseLine(line) &&
+    (extractPrice(line) !== null || extractPackGrams(line) !== null) &&
+    !hasRealName(deriveProductName(line))
+  )
+}
+
+/**
+ * Every item on a receipt, in order. Many tills print a product name on one
+ * line and its weight or "2 @ 1.50" price on the next; read alone, neither line
+ * was an item. Identical lines are kept: two "MILK 1.20" lines are two milks.
+ */
+export function parseItemLines(rawLines: string[]): ParsedLine[] {
+  const items: ParsedLine[] = []
+  let pendingName: string | null = null
+
+  for (const raw of rawLines) {
+    const line = cleanLine(raw)
+    const parsed = parseItemLine(line)
+    if (parsed) {
+      items.push(parsed)
+      pendingName = null
+      continue
+    }
+
+    if (pendingName && isNamelessAmount(line)) {
+      // "2 @ 1.50 3.00" becomes "2 x MILK @ 1.50 3.00" so the count is read as packs.
+      const each = line.match(/^(\d{1,2})\s*@\s*(.*)$/)
+      const merged = parseItemLine(
+        each ? `${each[1]} x ${pendingName} @ ${each[2]}` : `${pendingName} ${line}`,
+      )
+      if (merged) items.push(merged)
+      pendingName = null
+      continue
+    }
+
+    pendingName = !isNoiseLine(line) && hasRealName(line) ? line : null
+  }
+
+  return items
+}
+
+/**
+ * Lines from several photos of one long receipt, in order. Photos taken in
+ * sequence overlap, so the lines that end one photo and start the next are
+ * kept once.
+ */
+export function joinPages(pages: string[][]): string[] {
+  const joined: string[] = []
+  const same = (a: string, b: string) => cleanLine(a).toLowerCase() === cleanLine(b).toLowerCase()
+
+  for (const page of pages) {
+    let overlap = 0
+    for (let size = Math.min(joined.length, page.length); size > 0; size -= 1) {
+      const tail = joined.slice(joined.length - size)
+      if (tail.every((line, index) => same(line, page[index]))) {
+        overlap = size
+        break
+      }
+    }
+    joined.push(...page.slice(overlap))
+  }
+
+  return joined
 }
 
 // Guard against non-receipt images: require price patterns or receipt keywords
