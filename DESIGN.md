@@ -20,13 +20,16 @@ a warm food-broadsheet look that refuses the cold blue-glass SaaS default.
 Nothing sets a raw colour or a magic pixel value at the component.
 
 - **Ground** `--paper` #f4eee1 · `--paper-2` #ece3d1 · `--surface` #fbf7ee · `--surface-2` #f1e8d6
-- **Ink** `--ink` #211c13 (14.6:1 on paper) · `--ink-soft` #564f3f (7.1:1) · `--ink-faint` #7a7059
+- **Ink** `--ink` #211c13 (14.6:1 on paper) · `--ink-soft` #564f3f (7.1:1) · `--ink-faint` #6d6450 (5.06:1; dark #9a937e, 4.93:1 on its darkest surface). Field borders use `--ink-faint` so a form field clears 3:1.
 - **Green** `--green` #1f4433 · `--green-deep` #163227 · `--on-green` #f4eede · `--green-text` #1f4433
 - **Marmalade** `--accent` #bd6318 · `--accent-soft` #e0a25c · `--accent-text` #8f4a10
 - **Signals** `--signal-win` #3d6b4f · `--signal-watch` #a2610f · `--signal-gap` #4a5a6b · `--unmatched` #8a8272 · `--danger` #a23a2a
 - **Charting** `--viz-produce` #4f7a4a · `--viz-protein` #9a4b34 · `--viz-dairy` #c9973f · `--viz-grain` #8a6d3b · `--viz-pantry` #5c6b7a · `--viz-snack` #7a4a6b · `--viz-drink` #3f7480 — ordered by lightness so it survives greyscale.
 - **Type scale** `--step--1` … `--step-4`, fluid, one ratio. **Space scale** `--s-1` … `--s-6` = 6 / 12 / 20 / 32 / 52 / 84.
 - Radius 12 / 16 / 26px. Shadows carry offset + soft blur (never zero-offset halos).
+- **On a photograph** `--scrim-top/mid/bottom`, `--on-photo`, `--on-photo-soft`, `--on-photo-line`, `--glass`, `--glass-strong`, `--photo-shadow` — the hero sits on a photo, not on a token ground, so it has its own set, the same in both themes.
+- **Motion** `--dur-fast` 120ms · `--dur` 200ms · `--dur-slow` 320ms · `--ease-out` cubic-bezier(0.2, 0.8, 0.2, 1). No literal durations at the component.
+- `color-scheme` is `light` / `dark` with the theme, so native inputs, scrollbars and pickers follow it.
 - Dark mode: `@media (prefers-color-scheme: dark)` guarded as `:root:not([data-theme='light'])`, plus `:root[data-theme]` overrides so the toggle wins both ways.
 
 **The one contrast rule.** Marmalade measures 3.66:1 on paper — fine for rules,
@@ -64,7 +67,8 @@ resolves to #e0a25c at 7.50:1 and is used directly.
   reports actual work.
 - Items settle in staggered as their matches resolve (`.stagger`, 6 steps then a
   shared delay). Toasts rise once. Meter fills ease on an exponential curve.
-- `prefers-reduced-motion: reduce` disables animation and transitions globally.
+- `prefers-reduced-motion: reduce` disables animation and transitions globally, and smooth scrolling.
+- Focus on dark green or on the hero photo uses `--on-green`; the default `--accent-text` ring is about 2:1 there.
 
 ## Reflexes
 

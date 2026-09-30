@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/kandulanikhilvarma/cartwise/actions/workflows/ci.yml"><img src="https://github.com/kandulanikhilvarma/cartwise/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/Next.js-15-000?logo=next.js" alt="Next.js 15" />
   <img src="https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
@@ -29,7 +30,7 @@
 
 Most nutrition apps die because logging every meal is too much work — around **97% of users are gone by day 30**. Cartwise removes the logging. Your grocery **receipt is the data** you already have: photograph it once and get a plain-language read of your whole shop.
 
-- **Zero-friction** — one Google tap, then straight to scanning. No onboarding form.
+- **Zero-friction** — photograph the receipt first; one Google tap saves the read. No onboarding form.
 - **Honest** — nutrition comes from real databases (USDA + Open Food Facts). Items we can't match are shown as *unmatched*, never filled with made-up numbers. Matches that are physically impossible per 100 g are thrown away rather than displayed.
 - **Private** — the receipt photo is read **on your device**; only the extracted text reaches the server.
 
@@ -53,10 +54,12 @@ And a shop is a **week's supply for a household**, not one person's day — so a
 | 🥗 **Real nutrition** | USDA FoodData Central first, Open Food Facts as fallback, plus NOVA processing group, Nutri-Score and allergen flags. Each item names the database that answered. |
 | 📊 **Watch · gap · win** | One thing running high, one thing missing, one thing that went right — then meters against a week for your household. |
 | 💷 **Spend** | Prices already on the receipt become cost by food group and cost per gram of protein. |
-| 🗂️ **Batches** | Search, sort, rename, delete, export to CSV. Undo on item removal. |
-| 🔖 **Barcode lookup** | Add a single product by barcode when a receipt misses it. |
+| 🗂️ **Batches** | Search, sort, rename, delete (with a confirm step), export to CSV. Undo on item removal. |
+| 🔖 **Barcode** | Scan with the camera (where the browser can read barcodes) or type the number, then add the product to a shop with its own per-100 g figures and pack weight. |
 | 🔍 **Fix a bad match** | Search both food databases by hand and pick the right product, or retry a lookup that failed because a source was down. |
 | 🔁 **Buy again** | Items bought in more than one previous shop are offered as one tap each. |
+| 🥬 **Use it up** | Home lists fresh food from the last 2-10 days that is not marked eaten yet. |
+| 📦 **Your data** | Download everything as one JSON file, or delete the account and every batch. |
 | 🌗 **Light and dark** | A full parallel palette with an explicit toggle, plus reduced-motion and forced-colors support. |
 | 🛡️ **Guarded input** | Non-receipt images are refused with a clear message; lines with no price or weight are not treated as food. |
 
@@ -119,6 +122,12 @@ sequenceDiagram
     B->>B: Grayscale, stretch contrast, downscale
     B->>B: Tesseract OCR (image never leaves the device)
     B->>API: POST /api/grocery/receipt with text lines only
+    opt Not signed in yet
+        API-->>B: 401
+        B->>B: Hold the text lines in this tab
+        S->>B: Sign in with Google
+        B->>API: Send the held lines once
+    end
 
     API->>API: Reject anything that is not a receipt
     API->>API: Parse name, quantity, weight, price, date
@@ -189,7 +198,7 @@ flowchart TB
         PWA["Installable web app<br/>Tesseract WASM OCR"]
     end
     subgraph Vercel["Vercel"]
-        EDGE["Middleware<br/>protects /home /scan /grocery /barcode /settings"]
+        EDGE["Middleware<br/>protects /home /grocery /barcode /settings"]
         RSC["Server components"]
         API["Route handlers"]
     end
@@ -222,7 +231,7 @@ flowchart TB
 - **OCR** — Tesseract.js, client-side, with canvas pre-processing
 - **Nutrition** — USDA FoodData Central + Open Food Facts
 - **Styling** — hand-written CSS design tokens; Young Serif, Hanken Grotesk, Fragment Mono
-- **Tests / CI** — Vitest + GitHub Actions (lint · typecheck · test · build) + CodeQL
+- **Tests / CI** — Vitest + GitHub Actions (lint · typecheck · test · build) + CodeQL + dependency review
 
 ## Design
 
@@ -258,9 +267,13 @@ Without `DATABASE_URL` the app runs against an in-memory store, so you can try t
 ## Testing
 
 ```bash
-npm test        # vitest — parsing, weighting, references, lookup guards
-npm run build   # production build
+npm test            # vitest — parsing, weighting, references, lookup guards, store
+npm run typecheck   # tsc --noEmit
+npm run coverage    # coverage over every file in src/
+npm run build       # production build
 ```
+
+CI runs lint, typecheck, tests and build on Node 22 for every push and pull request.
 
 ## Deployment (Vercel + Postgres)
 
