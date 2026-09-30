@@ -42,7 +42,17 @@ function matchNote(item: GroceryItem): string {
   return source ? `Nutrition from ${source}.` : 'Nutrition matched.'
 }
 
-export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null }) {
+// Receipt text read while signed out, waiting for sign-in. Removed as soon as it
+// is sent, and sessionStorage ends with the tab.
+const PENDING_LINES_KEY = 'cartwise-pending-lines'
+
+export function ReceiptUploader({
+  profile,
+  signedIn,
+}: {
+  profile?: NutrientProfile | null
+  signedIn: boolean
+}) {
   const router = useRouter()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -53,6 +63,29 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [batch, setBatch] = useState<GroceryBatch | null>(null)
+  const [needsSignIn, setNeedsSignIn] = useState(false)
+  const resumed = useRef(false)
+
+  // Back from sign-in with a receipt that was read while signed out: save it.
+  useEffect(() => {
+    if (!signedIn || resumed.current) return
+    resumed.current = true
+    let pending: string[] | null = null
+    try {
+      pending = JSON.parse(sessionStorage.getItem(PENDING_LINES_KEY) ?? 'null') as string[] | null
+      sessionStorage.removeItem(PENDING_LINES_KEY)
+    } catch {
+      pending = null
+    }
+    if (!Array.isArray(pending) || pending.length === 0) return
+    submitLines(pending)
+      .catch((resumeError) =>
+        setError(resumeError instanceof Error ? resumeError.message : 'Processing failed'),
+      )
+      .finally(() => setStage('idle'))
+    // submitLines only reads state setters and the router, which are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn])
 
   const isBusy = stage !== 'idle'
   const items = batch?.items ?? []
@@ -139,25 +172,41 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
         throw new Error('Couldn’t read any text. Try a sharper, well-lit photo of the whole receipt.')
       }
 
-      setStage('matching')
-      const response = await fetch('/api/grocery/receipt', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ lines }),
-      })
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { message?: string } | null
-        throw new Error(payload?.message ?? `Processing failed (${response.status}).`)
-      }
-
-      setBatch((await response.json()) as GroceryBatch)
-      router.refresh()
+      await submitLines(lines)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Processing failed')
     } finally {
       setStage('idle')
     }
+  }
+
+  async function submitLines(lines: string[]) {
+    setStage('matching')
+    const response = await fetch('/api/grocery/receipt', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ lines }),
+    })
+
+    // Not signed in: the receipt is already read, so keep the text (only the
+    // text, in this tab) until the person signs in, instead of losing the work.
+    if (response.status === 401) {
+      try {
+        sessionStorage.setItem(PENDING_LINES_KEY, JSON.stringify(lines))
+      } catch {
+        // Storage off (private mode): they sign in and scan again.
+      }
+      setNeedsSignIn(true)
+      return
+    }
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { message?: string } | null
+      throw new Error(payload?.message ?? `Processing failed (${response.status}).`)
+    }
+
+    setBatch((await response.json()) as GroceryBatch)
+    router.refresh()
   }
 
   return (
@@ -284,22 +333,34 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
           </div>
         ) : null}
 
+        {/* One short status line is announced, not the whole result card. */}
         <p aria-live="polite" className="sr-status">
           {isBusy
             ? STAGE_COPY[stage]
-            : pages.length > 0
-              ? `Ready to process ${pages.length} ${pages.length === 1 ? 'photo' : 'photos'}.`
-              : 'No receipt selected yet.'}
+            : batch
+              ? `Saved. ${matchedCount} of ${items.length} items matched to nutrition data.`
+              : pages.length > 0
+                ? `Ready to process ${pages.length} ${pages.length === 1 ? 'photo' : 'photos'}.`
+                : 'No receipt selected yet.'}
         </p>
-        {error ? (
-          <p aria-live="assertive" className="error-text">
-            {error}
-          </p>
+        <p className="error-text" role="alert">
+          {error ?? ''}
+        </p>
+        {needsSignIn ? (
+          <div className="notice" role="status">
+            <p>
+              Your receipt is read. Sign in to save it — it is sent as soon as you are back, and
+              you will not need to scan it again.
+            </p>
+            <Link className={buttonClass('primary')} href="/login">
+              Sign in to save
+            </Link>
+          </div>
         ) : null}
       </div>
 
       {batch ? (
-        <section className="result-card" aria-live="polite">
+        <section className="result-card">
           <h2>{batch.storeName ?? 'Your grocery batch'}</h2>
           <p className="fine-print num">
             {matchedCount} of {items.length} items matched to nutrition data.
