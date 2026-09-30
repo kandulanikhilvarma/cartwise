@@ -120,6 +120,36 @@ describe('lookupNutrition', () => {
 
     expect(await lookupNutrition('offline source food')).toBeNull()
   })
+
+  it('reads Atwater energy and prefers a usable Foundation food', async () => {
+    // Shape of the live USDA answer for "chicken breast" (2026-10-01).
+    vi.stubGlobal(
+      'fetch',
+      mockFetchOnce({
+        foods: [
+          { dataType: 'Foundation', foodNutrients: [{ nutrientNumber: '645', value: 0.9 }] },
+          {
+            dataType: 'SR Legacy',
+            foodNutrients: [
+              { nutrientNumber: '208', value: 263 },
+              { nutrientNumber: '203', value: 14.7 },
+            ],
+          },
+          {
+            dataType: 'Foundation',
+            foodNutrients: [
+              { nutrientNumber: '957', value: 106 },
+              { nutrientNumber: '958', value: 112 },
+              { nutrientNumber: '203', value: 22.5 },
+            ],
+          },
+        ],
+      }),
+    )
+    const result = await lookupNutrition('chicken breast atwater')
+    expect(result?.caloriesKcal).toBe(112)
+    expect(result?.proteinG).toBe(22.5)
+  })
 })
 
 describe('shouldRecordMiss', () => {

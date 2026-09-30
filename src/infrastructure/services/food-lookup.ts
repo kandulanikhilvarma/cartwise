@@ -141,24 +141,38 @@ async function fromUsda(name: string): Promise<SourceResult> {
 
   const url =
     `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}` +
-    `&query=${encodeURIComponent(name)}&pageSize=1&dataType=Foundation,SR%20Legacy`
+    `&query=${encodeURIComponent(name)}&pageSize=5&dataType=Foundation,SR%20Legacy`
 
   const answer = await fetchJson(url)
   if (!answer.reached) return { reached: false, match: null }
 
   const payload = answer.data as {
-    foods?: Array<{ foodNutrients?: Array<{ nutrientNumber?: string; value?: number }> }>
+    foods?: Array<{
+      dataType?: string
+      foodNutrients?: Array<{ nutrientNumber?: string; value?: number }>
+    }>
   } | null
 
-  const nutrients = payload?.foods?.[0]?.foodNutrients
-  if (!nutrients || nutrients.length === 0) return { reached: true, match: null }
+  // Foundation foods report energy as Atwater kcal (958 specific, 957 general),
+  // not 208, and the top hit can carry no energy or protein at all. Take the
+  // first usable Foundation food (analysed whole foods), else the first usable.
+  const candidates = (payload?.foods ?? [])
+    .map((food) => {
+      const nutrients = food.foodNutrients ?? []
+      const pick = (nutrientNumber: string): number =>
+        num(nutrients.find((n) => n.nutrientNumber === nutrientNumber)?.value)
+      return {
+        foundation: food.dataType === 'Foundation',
+        pick,
+        caloriesKcal: pick(USDA_NUTRIENT.energyKcal) || pick('958') || pick('957'),
+        proteinG: pick(USDA_NUTRIENT.protein),
+      }
+    })
+    .filter((food) => food.caloriesKcal > 0 || food.proteinG > 0)
 
-  const pick = (nutrientNumber: string): number =>
-    num(nutrients.find((n) => n.nutrientNumber === nutrientNumber)?.value)
-
-  const caloriesKcal = pick(USDA_NUTRIENT.energyKcal)
-  const proteinG = pick(USDA_NUTRIENT.protein)
-  if (caloriesKcal === 0 && proteinG === 0) return { reached: true, match: null }
+  const best = candidates.find((food) => food.foundation) ?? candidates[0]
+  if (!best) return { reached: true, match: null }
+  const { pick, caloriesKcal, proteinG } = best
 
   return {
     reached: true,
