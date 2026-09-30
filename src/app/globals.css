@@ -1353,6 +1353,14 @@ td.num,
   gap: 14px;
   max-width: 420px;
 }
+.barcode-video {
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+}
 
 /* The eyebrow labels the heading, so it sits above it rather than beside it. */
 .section-header {
