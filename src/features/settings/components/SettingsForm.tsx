@@ -36,10 +36,21 @@ export function SettingsForm({
   const [saving, setSaving] = useState(false)
   const [confirmEmail, setConfirmEmail] = useState('')
   const [deleting, setDeleting] = useState(false)
+  // Its own error, shown beside the delete button; the shared one sat in the
+  // card above, out of sight of the person deleting.
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  // The age as typed. Number('abc') used to become null and quietly clear it.
+  const [ageText, setAgeText] = useState(initial.ageYears?.toString() ?? '')
 
   const rda = rdaForProfile(values)
 
   async function save() {
+    const age = ageText.trim() === '' ? null : Number(ageText.trim())
+    if (age !== null && !(Number.isInteger(age) && age >= 13 && age <= 120)) {
+      setError('Age must be a whole number from 13 to 120, or left blank.')
+      return
+    }
+
     setSaving(true)
     setError(null)
     setStatus(null)
@@ -47,7 +58,7 @@ export function SettingsForm({
       const response = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, ageYears: age }),
       })
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { message?: string } | null
@@ -64,7 +75,7 @@ export function SettingsForm({
 
   async function removeAccount() {
     setDeleting(true)
-    setError(null)
+    setDeleteError(null)
     try {
       const response = await fetch('/api/account', {
         method: 'DELETE',
@@ -76,10 +87,8 @@ export function SettingsForm({
         throw new Error(payload?.message ?? 'Could not delete the account.')
       }
       await signOut({ callbackUrl: '/' })
-    } catch (deleteError) {
-      setError(
-        deleteError instanceof Error ? deleteError.message : 'Could not delete the account.',
-      )
+    } catch (failure) {
+      setDeleteError(failure instanceof Error ? failure.message : 'Could not delete the account.')
       setDeleting(false)
     }
   }
@@ -101,14 +110,17 @@ export function SettingsForm({
             Age
             <input
               inputMode="numeric"
-              value={values.ageYears ?? ''}
+              value={ageText}
               placeholder="Not set"
               onChange={(event) => {
+                setAgeText(event.target.value)
+                // Only a real age (or blank) moves the preview below.
                 const next = event.target.value.trim()
-                setValues((current) => ({
-                  ...current,
-                  ageYears: next === '' ? null : Number(next),
-                }))
+                const age = Number(next)
+                if (next === '') setValues((current) => ({ ...current, ageYears: null }))
+                else if (Number.isInteger(age) && age >= 13 && age <= 120) {
+                  setValues((current) => ({ ...current, ageYears: age }))
+                }
               }}
             />
             <span className="field-hint">Changes the vitamin D and calcium references.</span>
@@ -205,11 +217,9 @@ export function SettingsForm({
         <p aria-live="polite" className="sr-status">
           {status ?? ''}
         </p>
-        {error ? (
-          <p aria-live="assertive" className="error-text">
-            {error}
-          </p>
-        ) : null}
+        <p className="error-text" role="alert">
+          {error ?? ''}
+        </p>
       </section>
 
       <section className="surface-card">
@@ -244,6 +254,9 @@ export function SettingsForm({
             {deleting ? 'Deleting…' : 'Delete my account'}
           </Button>
         </div>
+        <p className="error-text" role="alert">
+          {deleteError ?? ''}
+        </p>
       </section>
     </>
   )
