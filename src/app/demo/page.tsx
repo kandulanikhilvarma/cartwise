@@ -13,9 +13,11 @@ export const metadata: Metadata = {
     'Run a real grocery receipt through Cartwise — the same parser, the same nutrition sources, no account needed.',
 }
 
-// The sample is fixed, so the lookups behind it can be cached for an hour
-// rather than refetched for every visitor.
-export const revalidate = 3600
+// Rendered per request. The lookups use `cache: 'no-store'`, so an ISR
+// `revalidate` here never took effect; it only made the build try to prerender
+// the page and query the production database. Repeat visits are cheap anyway:
+// every name is memoised in-process and cached in FoodMatch.
+export const dynamic = 'force-dynamic'
 
 export default async function DemoPage() {
   const parsed = await parseReceiptLines(SAMPLE_RECEIPT)
@@ -72,7 +74,11 @@ export default async function DemoPage() {
             ) : null}
           </div>
 
-          <NutritionSummary items={parsed.items} currency={parsed.currency} />
+          <NutritionSummary
+            items={parsed.items}
+            currency={parsed.currency}
+            receiptTotal={parsed.totalSpend}
+          />
         </section>
       </div>
 
