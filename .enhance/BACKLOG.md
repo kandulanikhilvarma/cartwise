@@ -78,7 +78,7 @@ Status: TODO, DONE (with evidence), PARKED (blocker ID), REJECTED (reason).
 | CI-2 | P3 | 1 | 5 | 1 | 5 | ci | DONE `cec285e`: one prisma generate |
 | RP-2 | P3 | 1 | 5 | 1 | 5 | repo | DONE `47b9874`: README badge, features, scripts |
 | A-1 | P3 | 1 | 4 | 2 | 2 | debt | REJECTED for this run: both rankers work. Merging them changes "buy again" output on two pages. |
-| A-2 | P3 | 2 | 5 | 1 | 10 | debt | PARKED B-2: hide the units setting, or build imperial output. Product decision. |
+| A-2 | P3 | 2 | 5 | 1 | 10 | debt | DONE (wrap-up): units picker hidden until imperial output exists; saved value kept. tsc, lint, class-guard test. |
 | A-3 | P3 | 2 | 3 | 3 | 2 | debt | REJECTED for this run: ESLint 9 flat-config migration belongs in its own PR. |
 
 ## Feature proposals
@@ -94,6 +94,6 @@ MAX_NEW_FEATURES is 5. Ten proposals, five selected.
 | N-5 | Scan first, sign in to save | PRD §5 asks for sign-in after the photo; today sign-in comes first. | PRD §5 flow. | `/scan` public, text lines held in `sessionStorage` across sign-in, sent after. | none | yes, DONE `3464207`: `/scan` opens signed out (screen in `screens/after`) |
 | N-6 | Push "use it up" reminders | Reminder when not in the app. | PRD §5 day-2 notification. | Web Push. | needs VAPID keys and a sender (B-3) | no, PARKED B-3 |
 | N-7 | This shop vs last shop by food group | Trend per group. | Home shows produce change only. | Extra card. | none | no: lower value |
-| N-8 | Imperial units output | `units` setting does nothing. | A-2. | Format layer. | decision B-2 | no |
+| N-8 | Imperial units output | `units` setting did nothing. | A-2. | Format layer. | none (picker hidden) | no |
 | N-9 | Playwright smoke test | No browser test. | T-1. | Public pages and `/demo`. | none | no: tooling; listed as a toolbox gap |
 | N-10 | Share a read as an image | Social proof. | not in the PRD | OG image per batch. | privacy decision | no |

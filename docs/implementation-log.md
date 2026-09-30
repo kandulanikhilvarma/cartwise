@@ -289,3 +289,13 @@ Performance and SEO
   foods report energy as Atwater kcal (958/957), not 208, so good matches were
   dropped. The lookup now reads 5 results, takes energy from 208, 958 or 957,
   and prefers the first usable Foundation food. Test uses the live response shape.
+
+## 2026-10-01 - Wrap-up
+
+- `npm audit` 5 dev advisories -> 0: vitest and coverage-v8 4.1.11, overrides
+  `brace-expansion@<2` ^1.1.21, `brace-expansion@>=3` ^5.0.12, `js-yaml@4` ^4.3.2.
+  npm 10.9.4 crashes resolving this tree ("reading edgesOut"); the lockfile was
+  resolved with npm 11 and installs cleanly with `npm ci` on npm 10.
+- Settings: the units picker is hidden. Nothing read it (A-2); the stored value stays.
+- Actions: checkout v7, setup-node v7, codeql-action v4, dependency-review v5
+  (supersedes Dependabot #14, #15, #16, #21).
