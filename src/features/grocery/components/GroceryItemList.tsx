@@ -53,6 +53,17 @@ function titleCase(value: string): string {
   return value.replace(/\b[a-z]/g, (character) => character.toUpperCase())
 }
 
+/**
+ * A number typed by a person: "0,5" on a comma-decimal keyboard is 0.5, not
+ * NaN. Returns undefined for blank, null for anything that is not above zero.
+ */
+function typedNumber(text: string): number | null | undefined {
+  const trimmed = text.trim()
+  if (!trimmed) return undefined
+  const value = Number(trimmed.replace(',', '.'))
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
 export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemListProps) {
   const router = useRouter()
   const [localItems, setLocalItems] = useState(items)
@@ -81,12 +92,10 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
     [localItems],
   )
 
-  async function apply(response: Response, message: string) {
-    const updatedBatch = (await response.json()) as { items: GroceryItem[] }
-    setLocalItems(updatedBatch.items)
-    setStatus(message)
-    router.refresh()
-  }
+  // Each response carries the whole batch. Two quick toggles could finish out of
+  // order and the older batch would overwrite the newer one, so only the answer
+  // to the latest request is applied.
+  const latestRequest = useRef(0)
 
   async function request(
     url: string,
@@ -94,6 +103,7 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
     successMessage: string,
     failureMessage: string,
   ): Promise<boolean> {
+    const sequence = ++latestRequest.current
     setIsSubmitting(true)
     setError(null)
     try {
@@ -102,13 +112,18 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
         const payload = (await response.json().catch(() => null)) as { message?: string } | null
         throw new Error(payload?.message ?? failureMessage)
       }
-      await apply(response, successMessage)
+      const updatedBatch = (await response.json()) as { items: GroceryItem[] }
+      if (sequence === latestRequest.current) {
+        setLocalItems(updatedBatch.items)
+        setStatus(successMessage)
+        router.refresh()
+      }
       return true
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : failureMessage)
       return false
     } finally {
-      setIsSubmitting(false)
+      if (sequence === latestRequest.current) setIsSubmitting(false)
     }
   }
 
@@ -197,7 +212,12 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
       return
     }
 
-    const grams = newGrams.trim() ? Number(newGrams) : null
+    const grams = typedNumber(newGrams)
+    const quantity = typedNumber(newQuantity)
+    if (grams === null || quantity === null) {
+      setError('Quantity and weight must be numbers above 0.')
+      return
+    }
     const ok = await request(
       `/api/grocery/${batchId}/items`,
       {
@@ -205,8 +225,8 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productName,
-          quantity: Number(newQuantity) || 1,
-          packGrams: grams,
+          quantity: quantity ?? 1,
+          packGrams: grams ?? null,
         }),
       },
       `${productName} added and matched.`,
@@ -257,7 +277,14 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
       return
     }
 
-    const grams = draft.packGrams.trim() ? Number(draft.packGrams) : null
+    const grams = typedNumber(draft.packGrams)
+    const quantity = typedNumber(draft.quantity)
+    // A bad weight used to become null, which cleared the saved weight and still
+    // reported "saved".
+    if (grams === null || quantity === null) {
+      setError('Quantity and weight must be numbers above 0.')
+      return
+    }
     const ok = await request(
       `/api/grocery/${batchId}/items/${itemId}`,
       {
@@ -265,8 +292,8 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productName,
-          quantity: Number(draft.quantity) || 1,
-          packGrams: grams,
+          quantity: quantity ?? 1,
+          packGrams: grams ?? null,
         }),
       },
       `${productName} saved and re-matched.`,
@@ -293,8 +320,7 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
   async function undoRemove() {
     if (!undo) return
     const restored = undo.item
-    setUndo(null)
-    await request(
+    const ok = await request(
       `/api/grocery/${batchId}/items`,
       {
         method: 'POST',
@@ -303,11 +329,15 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
           productName: restored.productName,
           quantity: restored.quantity,
           packGrams: restored.packGrams ?? null,
+          // Without the price a restored line dropped out of the shop's spend.
+          linePrice: restored.linePrice ?? null,
         }),
       },
       `${restored.productName} restored.`,
       'Could not restore that item.',
     )
+    // Kept on failure, so the person can press Undo again.
+    if (ok) setUndo(null)
   }
 
   return (
@@ -384,10 +414,18 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
       <p aria-live="polite" className="sr-status">
         {status}
       </p>
-      {error ? (
-        <p aria-live="assertive" className="error-text">
-          {error}
-        </p>
+      {/* Always mounted: a live region added together with its text is often not announced. */}
+      <p className="error-text" role="alert">
+        {error ?? ''}
+      </p>
+
+      {localItems.length === 0 ? (
+        <div className="empty-state">
+          <p>
+            No items in this batch. Add one above, or delete the batch if the receipt was not a
+            shop.
+          </p>
+        </div>
       ) : null}
 
       <div className="stagger">
@@ -478,7 +516,7 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
                             value={searchQuery}
                             onChange={(event) => setSearchQuery(event.target.value)}
                             onKeyDown={(event) => {
-                              if (event.key === 'Enter') void runSearch()
+                              if (event.key === 'Enter' && !searching) void runSearch()
                             }}
                           />
                         </label>
@@ -509,8 +547,8 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
 
                       {searchResults && searchResults.length > 0 ? (
                         <ul className="food-search-results">
-                          {searchResults.map((candidate) => (
-                            <li key={`${candidate.source}-${candidate.name}`}>
+                          {searchResults.map((candidate, index) => (
+                            <li key={`${candidate.source}-${candidate.brand ?? ''}-${candidate.name}-${index}`}>
                               <button
                                 className="food-search-result"
                                 disabled={isSubmitting}
@@ -533,9 +571,13 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
               )}
             </div>
             <div className="item-actions">
+              {/* Each label names its item: a screen reader lists these buttons
+                  out of context, and twenty identical "Remove"s are no help. */}
               <Button
                 size="small"
+                disabled={isSubmitting}
                 onClick={() => toggleItem(item)}
+                aria-label={`${item.consumed ? 'Mark not eaten' : 'Mark eaten'}: ${item.productName}`}
               >
                 {item.consumed ? 'Mark not eaten' : 'Mark eaten'}
               </Button>
@@ -545,12 +587,14 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
                     size="small"
                     disabled={isSubmitting}
                     onClick={() => retryMatch(item)}
+                    aria-label={`Try match again: ${item.productName}`}
                   >
                     Try match again
                   </Button>
                   <Button
                     size="small"
                     onClick={() => openSearch(item)}
+                    aria-label={`Search food for ${item.productName}`}
                   >
                     Search food
                   </Button>
@@ -577,6 +621,7 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
                 <Button
                   size="small"
                   onClick={() => startEdit(item)}
+                  aria-label={`Edit ${item.productName}`}
                 >
                   Edit
                 </Button>
@@ -586,6 +631,7 @@ export function GroceryItemList({ batchId, items, frequent = [] }: GroceryItemLi
                 size="small"
                 disabled={isSubmitting}
                 onClick={() => removeItem(item)}
+                aria-label={`Remove ${item.productName}`}
               >
                 Remove
               </Button>
