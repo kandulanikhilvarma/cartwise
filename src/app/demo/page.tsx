@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: 'See it work',
   description:
     'Run a real grocery receipt through Cartwise — the same parser, the same nutrition sources, no account needed.',
+  alternates: { canonical: '/demo' },
 }
 
 // Rendered per request. The lookups use `cache: 'no-store'`, so an ISR
@@ -24,8 +25,9 @@ export default async function DemoPage() {
   const matched = parsed.items.filter((item) => item.matchConfidence != null).length
 
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <MarketingNav />
+      <main id="main">
 
       <section className="surface-card marketing-article">
         <p className="eyebrow">No account needed</p>
@@ -95,7 +97,8 @@ export default async function DemoPage() {
         </div>
       </section>
 
+      </main>
       <MarketingFooter />
-    </main>
+    </div>
   )
 }

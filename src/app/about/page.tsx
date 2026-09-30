@@ -1,11 +1,20 @@
 import Image from 'next/image'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'About',
+  description:
+    'Why Cartwise reads grocery receipts instead of asking you to log meals, and who it is for.',
+  alternates: { canonical: '/about' },
+}
 
 export default function AboutPage() {
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <MarketingNav />
+      <main id="main">
       <figure className="page-banner">
         <Image src="/images/produce-flatlay.jpg" alt="A colourful spread of fresh vegetables." fill sizes="(max-width: 1160px) 100vw, 1120px" priority />
       </figure>
@@ -34,7 +43,8 @@ export default function AboutPage() {
           </article>
         </div>
       </section>
+      </main>
       <MarketingFooter />
-    </main>
+    </div>
   )
 }

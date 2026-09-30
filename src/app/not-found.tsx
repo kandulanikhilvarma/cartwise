@@ -5,8 +5,9 @@ import { buttonClass } from '@/shared/components/Button'
 
 export default function NotFound() {
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <MarketingNav />
+      <main id="main">
       <section className="surface-card marketing-article">
         <p className="eyebrow">404</p>
         <h1>We could not find that page.</h1>
@@ -23,7 +24,8 @@ export default function NotFound() {
           </Link>
         </div>
       </section>
+      </main>
       <MarketingFooter />
-    </main>
+    </div>
   )
 }

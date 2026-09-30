@@ -1,4 +1,7 @@
 import Image from 'next/image'
+import type { Metadata } from 'next'
+import { JsonLd } from '@/shared/components/JsonLd'
+import { SITE_URL } from '@/shared/config/site'
 import { MarketingFooter } from '@/shared/components/MarketingFooter'
 import { MarketingNav } from '@/shared/components/MarketingNav'
 import { Icon } from '@/shared/components/Icon'
@@ -26,12 +29,25 @@ const trustNotes = [
   'Sign in with Google. No password to set, no onboarding form before you see value.',
 ]
 
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+}
+
+const APP_DATA = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Cartwise',
+  url: SITE_URL,
+  applicationCategory: 'HealthApplication',
+  operatingSystem: 'Web',
+  description:
+    'Photograph a grocery receipt and get a nutrition read of the whole shop, matched to USDA and Open Food Facts data. No meal logging.',
+}
+
 export default function HomePage() {
   return (
     <>
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
+      <JsonLd data={APP_DATA} />
       <div className="home">
         <MarketingNav />
       </div>
