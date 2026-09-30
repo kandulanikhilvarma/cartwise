@@ -62,8 +62,11 @@ export async function POST(request: Request) {
     })
     return NextResponse.json(completed ?? batch)
   } catch (error) {
+    // The detail goes to the log only: it can carry database hosts and driver text.
     console.error('Receipt processing failed:', error)
-    const message = error instanceof Error ? error.message : 'Receipt processing failed'
-    return NextResponse.json({ message: `Couldn’t save this batch: ${message}` }, { status: 500 })
+    return NextResponse.json(
+      { message: 'Couldn’t save this batch. Try again in a moment.' },
+      { status: 500 },
+    )
   }
 }
