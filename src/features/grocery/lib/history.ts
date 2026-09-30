@@ -79,7 +79,13 @@ export function summarizeHistory(batches: GroceryBatch[]): History {
     }
   }
 
-  const spends = shops.map((shop) => shop.spend).filter((value): value is number => value !== null)
+  // Pounds and dollars do not add up. The newest shop's currency is the one
+  // shown, so only shops in that currency (or with none printed) are summed.
+  const currency = batches.find((batch) => batch.currency)?.currency ?? null
+  const spends = batches
+    .filter((batch) => !currency || !batch.currency || batch.currency === currency)
+    .map(batchSpend)
+    .filter((value): value is number => value !== null)
 
   const lastTwo = shops.slice(-2)
   const produceChange =
@@ -93,7 +99,7 @@ export function summarizeHistory(batches: GroceryBatch[]): History {
     matchedCount: coverage.matched,
     weighedCount: coverage.weighed,
     totalSpend: spends.length ? Math.round(spends.reduce((a, b) => a + b, 0) * 100) / 100 : null,
-    currency: batches.find((batch) => batch.currency)?.currency ?? null,
+    currency,
     shops,
     frequent: Array.from(counts.values())
       .filter((entry) => entry.timesBought > 1)

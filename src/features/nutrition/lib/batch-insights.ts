@@ -190,6 +190,7 @@ function findGap(
   weekly: Rda,
   items: GroceryItem[],
   profile?: NutrientProfile | null,
+  nutrientsKnown = true,
 ): Signal | null {
   const produce = items.filter((item) => item.foodGroup === 'produce').length
   if (produce === 0 && items.length > 0) {
@@ -199,6 +200,9 @@ function findGap(
       note: 'No fruit or vegetables matched in this shop',
     }
   }
+  // With nothing weighed every nutrient total is zero, and "0 µg of vitamin D"
+  // would be a claim about the shop made from no data at all.
+  if (!nutrientsKnown) return null
 
   const who = forWhom(profile)
   const candidates: Array<{ label: string; share: number; note: string }> = [
@@ -305,7 +309,7 @@ export function computeBatchSignals(
 
   const signals: Array<Signal | null> = [
     nutrientSignalsPossible ? findWatch(totals, weekly, items, profile) : null,
-    findGap(usable, weekly, items, profile),
+    findGap(usable, weekly, items, profile, nutrientSignalsPossible),
     findWin(usable, weekly, items, profile),
   ]
 
@@ -341,7 +345,12 @@ export function computeSpend(items: GroceryItem[]): SpendSummary | null {
     groupSpend.set(group, (groupSpend.get(group) ?? 0) + (item.linePrice ?? 0))
   }
 
-  const { totals } = computeBatchTotals(items)
+  // Price per gram of protein only means something over lines that have all
+  // three: a price, a weight and a match. Dividing the whole shop's spend by
+  // the protein of the weighed lines alone inflated it.
+  const costed = priced.filter((item) => item.packGrams != null && item.proteinG != null)
+  const costedSpend = costed.reduce((sum, item) => sum + (item.linePrice ?? 0), 0)
+  const costedProtein = computeBatchTotals(costed).totals.proteinG
 
   return {
     total: Math.round(total * 100) / 100,
@@ -353,6 +362,7 @@ export function computeSpend(items: GroceryItem[]): SpendSummary | null {
         spend: Math.round(spend * 100) / 100,
       }))
       .sort((a, b) => b.spend - a.spend),
-    costPerProteinGram: totals.proteinG > 0 ? Math.round((total / totals.proteinG) * 100) / 100 : null,
+    costPerProteinGram:
+      costedProtein > 0 ? Math.round((costedSpend / costedProtein) * 100) / 100 : null,
   }
 }

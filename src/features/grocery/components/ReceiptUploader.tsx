@@ -336,6 +336,7 @@ export function ReceiptUploader({ profile }: { profile?: NutrientProfile | null 
                 items={items}
                 profile={profile}
                 currency={batch.currency ?? null}
+                receiptTotal={batch.totalSpend}
               />
 
               <div className="cta-row">
