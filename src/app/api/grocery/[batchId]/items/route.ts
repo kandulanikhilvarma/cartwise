@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { addBatchItem } from '@/infrastructure/state/batch-store'
-import { parseJsonBody } from '@/shared/lib/http'
+import { cleanName, cleanQuantity, parseJsonBody } from '@/shared/lib/http'
 
 type RouteParams = {
   params: Promise<{ batchId: string }>
@@ -17,18 +17,28 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   const body = await parseJsonBody<{
-    productName?: string
-    quantity?: number
-    unit?: string | null
+    productName?: unknown
+    quantity?: unknown
+    unit?: unknown
     packGrams?: number | null
+    linePrice?: unknown
   }>(request)
 
   if (!body) {
     return NextResponse.json({ message: 'Invalid request body' }, { status: 400 })
   }
 
-  if (!body.productName?.trim()) {
-    return NextResponse.json({ message: 'Product name is required' }, { status: 400 })
+  const productName = cleanName(body.productName)
+  if (!productName) {
+    return NextResponse.json(
+      { message: 'A product name of up to 120 characters is required.' },
+      { status: 400 },
+    )
+  }
+
+  const quantity = body.quantity === undefined ? 1 : cleanQuantity(body.quantity)
+  if (quantity === null) {
+    return NextResponse.json({ message: 'Quantity must be between 0 and 1000.' }, { status: 400 })
   }
 
   let packGrams: number | null = null
@@ -40,11 +50,17 @@ export async function POST(request: Request, { params }: RouteParams) {
     packGrams = grams
   }
 
+  // Undo sends the price back so a restored line keeps its spend.
+  const price = Number(body.linePrice)
+  const linePrice =
+    body.linePrice != null && Number.isFinite(price) && price >= 0 && price < 100_000 ? price : null
+
   const updatedBatch = await addBatchItem(ownerEmail, batchId, {
-    productName: body.productName.trim(),
-    quantity: body.quantity,
-    unit: body.unit,
+    productName,
+    quantity,
+    unit: cleanName(body.unit, 20),
     packGrams,
+    linePrice,
   })
 
   if (!updatedBatch) {
