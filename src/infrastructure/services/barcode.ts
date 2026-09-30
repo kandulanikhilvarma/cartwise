@@ -7,9 +7,19 @@ export type BarcodeProduct = {
   carbsG: number
   fatG: number
   sodiumMg: number
+  /** Net weight of the pack, when Open Food Facts states it in g or ml. */
+  packGrams: number | null
 }
 
 const FETCH_TIMEOUT_MS = 6_000
+
+/** "400" with unit "g" is 400 g. Volume counts 1:1, as on receipts. Anything else is unknown. */
+function packGramsOf(product: Record<string, unknown>): number | null {
+  const amount = Number(product.product_quantity)
+  const unit = String(product.product_quantity_unit ?? 'g').toLowerCase()
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 50_000) return null
+  return unit === 'g' || unit === 'ml' ? amount : null
+}
 
 function per100g(values: Record<string, unknown>, key: string): number {
   const raw = values[`${key}_100g`]
@@ -48,6 +58,7 @@ export function toProduct(code: string, product: Record<string, unknown>): Barco
     carbsG: per100g(nutriments, 'carbohydrates'),
     fatG: per100g(nutriments, 'fat'),
     sodiumMg: Math.round(per100g(nutriments, 'sodium') * 1000 * 100) / 100,
+    packGrams: packGramsOf(product),
   }
 }
 

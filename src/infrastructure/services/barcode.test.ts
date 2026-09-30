@@ -43,6 +43,13 @@ describe('toProduct', () => {
     expect(product?.caloriesKcal).toBe(0)
   })
 
+  it('reads the pack weight only when it is in grams or millilitres', () => {
+    const base = { product_name: 'Beans', nutriments: { 'energy-kcal_100g': 80 } }
+    expect(toProduct('5000112548167', { ...base, product_quantity: '415', product_quantity_unit: 'g' })?.packGrams).toBe(415)
+    expect(toProduct('5000112548167', { ...base, product_quantity: 6, product_quantity_unit: 'pcs' })?.packGrams).toBeNull()
+    expect(toProduct('5000112548167', base)?.packGrams).toBeNull()
+  })
+
   it('treats a product with no figures as not found', () => {
     expect(toProduct('5000112548167', { product_name: 'Mystery', nutriments: {} })).toBeNull()
   })

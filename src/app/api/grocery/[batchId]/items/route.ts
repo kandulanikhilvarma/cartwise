@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { addBatchItem } from '@/infrastructure/state/batch-store'
+import { addBatchItem, type NewItemInput } from '@/infrastructure/state/batch-store'
+import { fetchBarcode, normalizeBarcode } from '@/infrastructure/services/barcode'
 import { cleanName, cleanQuantity, parseJsonBody } from '@/shared/lib/http'
 
 type RouteParams = {
@@ -22,6 +23,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     unit?: unknown
     packGrams?: number | null
     linePrice?: unknown
+    barcode?: unknown
   }>(request)
 
   if (!body) {
@@ -55,12 +57,34 @@ export async function POST(request: Request, { params }: RouteParams) {
   const linePrice =
     body.linePrice != null && Number.isFinite(price) && price >= 0 && price < 100_000 ? price : null
 
+  // A scanned product: its figures are fetched here from the barcode, not
+  // taken from the request, so a client cannot write made-up nutrition.
+  let per100g: NewItemInput['per100g'] = null
+  if (body.barcode !== undefined) {
+    const code = typeof body.barcode === 'string' ? normalizeBarcode(body.barcode) : null
+    if (!code) {
+      return NextResponse.json({ message: 'A barcode is 8 to 14 digits.' }, { status: 400 })
+    }
+    const { product } = await fetchBarcode(code)
+    if (product) {
+      per100g = {
+        caloriesKcal: product.caloriesKcal,
+        proteinG: product.proteinG,
+        carbsG: product.carbsG,
+        fatG: product.fatG,
+        sodiumMg: product.sodiumMg,
+      }
+      packGrams = packGrams ?? product.packGrams
+    }
+  }
+
   const updatedBatch = await addBatchItem(ownerEmail, batchId, {
     productName,
     quantity,
     unit: cleanName(body.unit, 20),
     packGrams,
     linePrice,
+    per100g,
   })
 
   if (!updatedBatch) {

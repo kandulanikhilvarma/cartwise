@@ -31,4 +31,19 @@ describe('memory store', () => {
     })
     expect(updated?.items[0]?.linePrice).toBe(1.2)
   })
+
+  it('stores a scanned product with its own figures [N-1]', async () => {
+    const batch = await createProcessingBatch('d@example.com', null)
+    const updated = await addBatchItem('d@example.com', batch.id, {
+      productName: 'Baked Beans',
+      packGrams: 415,
+      per100g: { caloriesKcal: 80, proteinG: 4.7, carbsG: 12.9, fatG: 0.4, sodiumMg: 240 },
+    })
+    expect(updated?.items[0]).toMatchObject({
+      packGrams: 415,
+      caloriesKcal: 80,
+      matchSource: 'off',
+      matchConfidence: 1,
+    })
+  })
 })

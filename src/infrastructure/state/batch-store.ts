@@ -1,6 +1,7 @@
 import type { GroceryBatch, GroceryItem } from '@/features/grocery/types'
 import { prisma } from '@/infrastructure/db/client'
 import { lookupNutrition } from '@/infrastructure/services/food-lookup'
+import { classifyFoodGroup } from '@/features/nutrition/lib/food-group'
 
 const memoryBatches = new Map<string, GroceryBatch>()
 // Batch id -> owner email. Without it, memory mode showed every user's batches
@@ -239,6 +240,7 @@ function memoryAddItem(owner: string, batchId: string, input: NewItemInput): Gro
         calciumMg: null,
         consumed: false,
         consumedAt: null,
+        ...(input.per100g ? knownProductFields(input.productName, input.per100g) : {}),
       },
     ],
   })
@@ -341,6 +343,37 @@ export type NewItemInput = {
   packGrams?: number | null
   /** Sent by undo, so a restored line keeps its spend. */
   linePrice?: number | null
+  /**
+   * Figures already known for this exact product (a scanned barcode). A name
+   * search could match a different product, so none is made when these exist.
+   */
+  per100g?: {
+    caloriesKcal: number
+    proteinG: number
+    carbsG: number
+    fatG: number
+    sodiumMg: number
+  } | null
+}
+
+/** Nutrition fields for an item whose product is known exactly (Open Food Facts by barcode). */
+function knownProductFields(productName: string, per100g: NonNullable<NewItemInput['per100g']>) {
+  return {
+    unit: '100g',
+    matchConfidence: 1,
+    matchSource: 'off',
+    allergens: [] as string[],
+    additives: [] as string[],
+    foodGroup: classifyFoodGroup(productName),
+    novaGroup: null,
+    nutriScore: null,
+    ...per100g,
+    sugarG: null,
+    fiberG: null,
+    vitaminDMcg: null,
+    ironMg: null,
+    calciumMg: null,
+  }
 }
 
 export type ItemPatch = {
@@ -596,8 +629,11 @@ export async function addBatchItem(
   })
   if (!batch) return null
 
-  // A hand-added item gets the same lookup a scanned one does.
-  const nutrition = await nutritionFieldsFor(input.productName)
+  // A hand-added item gets the same lookup a scanned one does, unless the exact
+  // product is already known from its barcode.
+  const nutrition = input.per100g
+    ? knownProductFields(input.productName, input.per100g)
+    : await nutritionFieldsFor(input.productName)
 
   await prisma.groceryItem.create({
     data: {
